@@ -60,6 +60,11 @@ fn Common<'a, G: Html>(cx: Scope<'a>, props: MyComponentProps<'a, G>) -> View<G>
     }
 }
 
+#[derive(Clone, PartialEq, Eq)]
+struct Warning {
+    msg: String,
+}
+
 #[component]
 fn Index<G: Html>(cx: Scope) -> View<G> {
     view! { cx,
@@ -75,39 +80,21 @@ fn Index<G: Html>(cx: Scope) -> View<G> {
 
 #[component]
 fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
-    const NAMESPACE_PODCAST: uuid::Uuid = uuid::Uuid::from_bytes([
-        0xea, 0xd4, 0xc2, 0x36, 0xbf, 0x58, 0x58, 0xc6, 0xa2, 0xc6, 0xa6, 0xb2, 0x8d, 0x12, 0x8c,
-        0xb6,
-    ]);
-
     let url_str = create_signal(cx, String::new());
     let guid = create_signal(cx, String::new());
-    let protocol_warning = create_signal(cx, String::new());
+    let warnings = create_signal(cx, vec![]);
 
     create_effect(cx, || {
         // Trim whitespace.
         url_str.set(url_str.get().trim().to_string());
 
-        if let Ok(url) = Url::parse(url_str.get().as_str()) {
-            if !url.cannot_be_a_base() {
-                let scheme_str = format!("{}://", url.scheme());
-                let msg = if url_str.get().starts_with(scheme_str.as_str()) {
-                    format!(
-                        "Protocol scheme “<span class='font-mono'>{}</span>” should be stripped off from the URL.",
-                        scheme_str,
-                    )
-                // For some protocols, the format might be different.
-                } else {
-                    "Protocol scheme should be stripped off from the URL.".to_string()
-                };
-                protocol_warning.set(msg);
-            }
-        } else {
-            protocol_warning.set("".to_string());
-        }
+        let (new_guid, new_warnings) = update_guid(url_str.get().to_string());
 
-        let uuid = Uuid::new_v5(&NAMESPACE_PODCAST, url_str.get().as_bytes());
-        guid.set(uuid.to_string());
+        match new_guid {
+            Some(new_guid) => guid.set(new_guid),
+            None => guid.set("".to_string()),
+        };
+        warnings.set(new_warnings);
     });
 
     view! { cx,
@@ -132,7 +119,7 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
                 bind:value=url_str,
                 )
         }
-        (if !url_str.get().is_empty() {
+        (if !guid.get().is_empty() {
             view! { cx,
             div {
                 "GUID"
@@ -147,24 +134,60 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
         } else {
             view! { cx, }
         })
-        (if !protocol_warning.get().is_empty() {
+        (if warnings.get().len() != 0{
             view! { cx,
-            div(
-                class="flex items-center alert alert-warning",
-                role="alert",
-                ) {
-                span(
-                    class="inline flex-shrink-0 mr-3 w-6 h-6 stroke-2",
-                    dangerously_set_inner_html="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' class='feather feather-alert-circle'><circle cx='12' cy='12' r='10'></circle><line x1='12' y1='8' x2='12' y2='12'></line><line x1='12' y1='16' x2='12.01' y2='16'></line></svg>",
-                    ){}
-                span(dangerously_set_inner_html=protocol_warning.get().as_str()){}
-            }
+                Indexed(
+                    iterable=warnings,
+                    view=|cx, warning| view! { cx,
+                    div(
+                        class="flex items-center alert alert-warning",
+                        role="alert",
+                        ) {
+                        span(
+                            class="inline flex-shrink-0 mr-3 w-6 h-6 stroke-2",
+                            dangerously_set_inner_html="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' class='feather feather-alert-circle'><circle cx='12' cy='12' r='10'></circle><line x1='12' y1='8' x2='12' y2='12'></line><line x1='12' y1='16' x2='12.01' y2='16'></line></svg>",
+                            ){}
+                        span(dangerously_set_inner_html=warning.msg.as_str()){}
+                    }
+
+                    },
+                    )
             }
         } else {
             view! { cx, }
         })
-
     }
 
     }
+}
+
+fn update_guid(url_str: String) -> (Option<String>, Vec<Warning>) {
+    const NAMESPACE_PODCAST: uuid::Uuid = uuid::Uuid::from_bytes([
+        0xea, 0xd4, 0xc2, 0x36, 0xbf, 0x58, 0x58, 0xc6, 0xa2, 0xc6, 0xa6, 0xb2, 0x8d, 0x12, 0x8c,
+        0xb6,
+    ]);
+
+    let mut warnings = vec![];
+
+    if url_str.is_empty() {
+        return (None, vec![]);
+    }
+
+    if let Ok(url) = Url::parse(url_str.as_str()) {
+        let scheme_str = format!("{}://", url.scheme());
+        let msg = if url_str.starts_with(scheme_str.as_str()) {
+            format!(
+                        "Protocol scheme “<span class='font-mono'>{}</span>” should be stripped off from the URL.",
+                        scheme_str,
+                    )
+        // For some protocols, the format might be different.
+        } else {
+            "Protocol scheme should be stripped off from the URL.".to_string()
+        };
+        warnings.push(Warning { msg });
+    }
+
+    let uuid = Uuid::new_v5(&NAMESPACE_PODCAST, url_str.as_bytes()).to_string();
+
+    return (Some(uuid), warnings);
 }
