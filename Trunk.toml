@@ -7,5 +7,5 @@ stage = "build"
 command = "sh"
 command_arguments = [
   "-c",
-  "tailwindcss -i src/tailwind.css -o $TRUNK_STAGING_DIR/tailwind.css",
+  "tailwindcss -i src/tailwind.css -o $TRUNK_STAGING_DIR/tailwind.css --minify",
 ]
