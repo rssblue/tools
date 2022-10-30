@@ -116,7 +116,7 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
                 "GUID"
                 div(
                     type="text",
-                    class="input-text select-all",
+                    class="input-text select-all font-mono",
                     ) {
                     (guid.get())
                 }
