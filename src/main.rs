@@ -82,6 +82,8 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
     let url = create_signal(cx, String::new());
     let guid = create_signal(cx, String::new());
     create_effect(cx, || {
+        // Trim whitespace.
+        url.set(url.get().trim().to_string());
         let uuid = Uuid::new_v5(&NAMESPACE_PODCAST, url.get().as_bytes());
         guid.set(uuid.to_string());
     });
@@ -108,7 +110,7 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
                 bind:value=url,
                 )
         }
-        (if !url.get().to_string().trim().is_empty() {
+        (if !url.get().is_empty() {
             view! { cx,
             div {
                 "GUID"
