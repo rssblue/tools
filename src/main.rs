@@ -133,6 +133,7 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
             label(for="url") { "Podcast feed's URL" }
             input(
                 class="input-text",
+                autofocus=true,
                 type="url",
                 id="url",
                 placeholder="example.com/podcast-feed",
