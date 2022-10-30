@@ -119,21 +119,7 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
                 bind:value=url_str,
                 )
         }
-        (if !guid.get().is_empty() {
-            view! { cx,
-            div {
-                "GUID"
-                div(
-                    type="text",
-                    class="input-text select-all font-mono",
-                    ) {
-                    (guid.get())
-                }
-            }
-            }
-        } else {
-            view! { cx, }
-        })
+
         (if warnings.get().len() != 0{
             view! { cx,
                 Indexed(
@@ -152,6 +138,23 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
 
                     },
                     )
+            }
+        } else {
+            view! { cx, }
+        })
+
+
+        (if !guid.get().is_empty() {
+            view! { cx,
+            div {
+                "GUID"
+                div(
+                    type="text",
+                    class="input-text select-all font-mono",
+                    ) {
+                    (guid.get())
+                }
+            }
             }
         } else {
             view! { cx, }
