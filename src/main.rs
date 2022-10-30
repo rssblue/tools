@@ -1,5 +1,6 @@
 use sycamore::prelude::*;
 use sycamore_router::{HistoryIntegration, Route, Router};
+use url::Url;
 use uuid::Uuid;
 
 #[derive(Route)]
@@ -79,12 +80,33 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
         0xb6,
     ]);
 
-    let url = create_signal(cx, String::new());
+    let url_str = create_signal(cx, String::new());
     let guid = create_signal(cx, String::new());
+    let protocol_warning = create_signal(cx, String::new());
+
     create_effect(cx, || {
         // Trim whitespace.
-        url.set(url.get().trim().to_string());
-        let uuid = Uuid::new_v5(&NAMESPACE_PODCAST, url.get().as_bytes());
+        url_str.set(url_str.get().trim().to_string());
+
+        if let Ok(url) = Url::parse(url_str.get().as_str()) {
+            if !url.cannot_be_a_base() {
+                let scheme_str = format!("{}://", url.scheme());
+                let msg = if url_str.get().starts_with(scheme_str.as_str()) {
+                    format!(
+                        "Protocol scheme “{}” should be stripped off from the URL.",
+                        scheme_str,
+                    )
+                // For some protocols, the format might be different.
+                } else {
+                    "Protocol scheme should be stripped off from the URL.".to_string()
+                };
+                protocol_warning.set(msg);
+            }
+        } else {
+            protocol_warning.set("".to_string());
+        }
+
+        let uuid = Uuid::new_v5(&NAMESPACE_PODCAST, url_str.get().as_bytes());
         guid.set(uuid.to_string());
     });
 
@@ -107,10 +129,10 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
                 id="url",
                 placeholder="example.com/podcast-feed",
                 autocomplete="off",
-                bind:value=url,
+                bind:value=url_str,
                 )
         }
-        (if !url.get().is_empty() {
+        (if !url_str.get().is_empty() {
             view! { cx,
             div {
                 "GUID"
@@ -120,6 +142,15 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
                     ) {
                     (guid.get())
                 }
+            }
+            }
+        } else {
+            view! { cx, }
+        })
+        (if !protocol_warning.get().is_empty() {
+            view! { cx,
+            div(class="alert alert-warning") {
+                (protocol_warning.get())
             }
             }
         } else {

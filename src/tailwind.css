@@ -60,4 +60,12 @@
   .input-text {
     @apply block w-full rounded-xl border-gray-300 shadow-sm focus:ring-blue-100 focus:ring focus:outline-none focus:shadow-none placeholder:text-gray-300 custom-transition;
   }
+
+  .alert {
+    @apply p-4 text-sm rounded-lg;
+  }
+
+  .alert-warning {
+    @apply bg-yellow-50 border-yellow-800 text-yellow-800;
+  }
 }
