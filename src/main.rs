@@ -194,6 +194,13 @@ fn update_guid(url_str: String) -> (Option<String>, Vec<Warning>) {
             "Protocol scheme should be removed from the URL.".to_string()
         };
         warnings.push(Warning { msg });
+    } else {
+        let new_url_str = format!("https://{}", url_str);
+        if Url::parse(new_url_str.as_str()).is_err() {
+            warnings.push(Warning {
+                msg: "This does not appear to be a valid URL.".to_string(),
+            });
+        }
     }
 
     let uuid = Uuid::new_v5(&NAMESPACE_PODCAST, url_str.as_bytes()).to_string();
