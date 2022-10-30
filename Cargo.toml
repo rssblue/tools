@@ -1,0 +1,10 @@
+[package]
+name = "rssblue-tools"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sycamore = "0.8.2"
+sycamore-router = "0.8.0"
+getrandom = { version = "0.2", features = ["js"] }
+uuid = { version = "1.2.1", features = ["v5", "fast-rng", "macro-diagnostics"] }
