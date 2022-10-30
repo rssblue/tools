@@ -37,12 +37,12 @@ fn main() {
 }
 
 #[derive(Prop)]
-pub struct MyComponentProps<'a, G: Html> {
+pub struct CommonComponentProps<'a, G: Html> {
     children: Children<'a, G>,
 }
 
 #[component]
-fn Common<'a, G: Html>(cx: Scope<'a>, props: MyComponentProps<'a, G>) -> View<G> {
+fn Common<'a, G: Html>(cx: Scope<'a>, props: CommonComponentProps<'a, G>) -> View<G> {
     let children = props.children.call(cx);
     view! { cx,
     a(href="https://rssblue.com") {
@@ -63,6 +63,27 @@ fn Common<'a, G: Html>(cx: Scope<'a>, props: MyComponentProps<'a, G>) -> View<G>
 #[derive(Clone, PartialEq, Eq)]
 struct Warning {
     msg: String,
+}
+
+#[derive(Prop)]
+struct WarningComponentProps {
+    warning: Warning,
+}
+
+#[component]
+fn WarningComponent<G: Html>(cx: Scope, props: WarningComponentProps) -> View<G> {
+    view! {cx,
+    div(
+        class="flex items-center alert alert-warning",
+        role="alert",
+        ) {
+        span(
+            class="inline flex-shrink-0 mr-3 w-6 h-6 stroke-2",
+            dangerously_set_inner_html="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' class='feather feather-alert-circle'><circle cx='12' cy='12' r='10'></circle><line x1='12' y1='8' x2='12' y2='12'></line><line x1='12' y1='16' x2='12.01' y2='16'></line></svg>",
+            ){}
+        span(dangerously_set_inner_html=props.warning.msg.as_str()){}
+    }
+    }
 }
 
 #[component]
@@ -124,19 +145,7 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
             view! { cx,
                 Indexed(
                     iterable=warnings,
-                    view=|cx, warning| view! { cx,
-                    div(
-                        class="flex items-center alert alert-warning",
-                        role="alert",
-                        ) {
-                        span(
-                            class="inline flex-shrink-0 mr-3 w-6 h-6 stroke-2",
-                            dangerously_set_inner_html="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' class='feather feather-alert-circle'><circle cx='12' cy='12' r='10'></circle><line x1='12' y1='8' x2='12' y2='12'></line><line x1='12' y1='16' x2='12.01' y2='16'></line></svg>",
-                            ){}
-                        span(dangerously_set_inner_html=warning.msg.as_str()){}
-                    }
-
-                    },
+                    view=|cx, warning| view! { cx, WarningComponent(warning=warning)}
                     )
             }
         } else {
