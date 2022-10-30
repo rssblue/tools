@@ -93,7 +93,7 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
                 let scheme_str = format!("{}://", url.scheme());
                 let msg = if url_str.get().starts_with(scheme_str.as_str()) {
                     format!(
-                        "Protocol scheme “{}” should be stripped off from the URL.",
+                        "Protocol scheme “<span class='font-mono'>{}</span>” should be stripped off from the URL.",
                         scheme_str,
                     )
                 // For some protocols, the format might be different.
@@ -149,8 +149,15 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
         })
         (if !protocol_warning.get().is_empty() {
             view! { cx,
-            div(class="alert alert-warning") {
-                (protocol_warning.get())
+            div(
+                class="flex items-center alert alert-warning",
+                role="alert",
+                ) {
+                span(
+                    class="inline flex-shrink-0 mr-3 w-6 h-6 stroke-2",
+                    dangerously_set_inner_html="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' class='feather feather-alert-circle'><circle cx='12' cy='12' r='10'></circle><line x1='12' y1='8' x2='12' y2='12'></line><line x1='12' y1='16' x2='12.01' y2='16'></line></svg>",
+                    ){}
+                span(dangerously_set_inner_html=protocol_warning.get().as_str()){}
             }
             }
         } else {
