@@ -173,6 +173,12 @@ fn update_guid(url_str: String) -> (Option<String>, Vec<Warning>) {
         return (None, vec![]);
     }
 
+    if url_str.ends_with('/') {
+        warnings.push(Warning {
+            msg: "Trailing slashes should be stripped off from the URL.".to_string(),
+        });
+    }
+
     if let Ok(url) = Url::parse(url_str.as_str()) {
         let scheme_str = format!("{}://", url.scheme());
         let msg = if url_str.starts_with(scheme_str.as_str()) {
@@ -189,5 +195,5 @@ fn update_guid(url_str: String) -> (Option<String>, Vec<Warning>) {
 
     let uuid = Uuid::new_v5(&NAMESPACE_PODCAST, url_str.as_bytes()).to_string();
 
-    return (Some(uuid), warnings);
+    (Some(uuid), warnings)
 }
