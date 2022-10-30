@@ -122,7 +122,8 @@ fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
     h1(class="mb-3") { "Podcast GUID" }
     h2(class="mt-3 text-gray-500") { "Generate a unique, global identifier for your podcast." }
     p(class="my-7") {
-        "Podcast GUID is part of the podcast namespace initiative. It aims to provide podcasts with a consistent identity across the RSS ecosystem. Learn more "
+            span(class="font-mono") { "<podcast:guid>" }
+        " is part of the podcast namespace initiative and aims to provide podcasts with a consistent identity across the RSS ecosystem. Learn more "
             a(
                 class="link",
                 href="https://podcastindex.org/namespace/1.0#guid",
