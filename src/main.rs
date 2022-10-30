@@ -199,7 +199,8 @@ fn update_guid(url_str: String) -> (Option<String>, Vec<Warning>) {
 
     if url_str.ends_with('/') {
         warnings.push(Warning {
-            msg: "Trailing slashes should be removed from the URL.".to_string(),
+            msg: "To generate a valid GUID, trailing slashes should be removed from the URL."
+                .to_string(),
         });
     }
 
@@ -207,12 +208,12 @@ fn update_guid(url_str: String) -> (Option<String>, Vec<Warning>) {
         let scheme_str = format!("{}://", url.scheme());
         let msg = if url_str.starts_with(scheme_str.as_str()) {
             format!(
-                        "Protocol scheme “<span class='font-mono'>{}</span>” should be removed from the URL.",
+                        "To generate a valid GUID, protocol scheme “<span class='font-mono'>{}</span>” should be removed from the URL.",
                         scheme_str,
                     )
         // For some protocols, the format might be different.
         } else {
-            "Protocol scheme should be removed from the URL.".to_string()
+            "To generate a valid GUID, protocol scheme should be removed from the URL.".to_string()
         };
         warnings.push(Warning { msg });
     } else {
