@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  audio::-webkit-media-controls-panel {
+    @apply bg-white;
+  }
+
+  audio::-webkit-media-controls-enclosure {
+    @apply rounded-xl;
+  }
+
+  [x-cloak] {
+    display: none !important;
+  }
+
+  [data-format-time] {
+    @apply invisible;
+  }
+
+  [data-format-date] {
+    @apply invisible;
+  }
+
+  [data-format-date-simple] {
+    @apply invisible;
+  }
+
+  summary {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .custom-transition {
+    @apply transition duration-300 ease-in-out;
+  }
+
+  a,button {
+    @apply custom-transition;
+  }
+
+  .custom-shadow {
+    @apply shadow hover:shadow-none;
+  }
+
+  input[type=button], input[type=file] {
+    @apply file:shadow hover:file:shadow-none file:transition file:duration-300 file:ease-in-out;
+  }
+
+  .btn {
+    @apply inline-block text-center px-5 py-2 no-underline rounded-xl font-bold;
+  }
+
+  .btn-primary {
+    @apply text-gray-50 bg-blue-500 hover:bg-blue-600 custom-shadow;
+  }
+
+  .input-text {
+    @apply block w-full rounded-xl border-gray-300 shadow-sm focus:ring-blue-100 focus:ring focus:outline-none focus:shadow-none placeholder:text-gray-300 custom-transition;
+  }
+
+  .alert {
+    @apply p-4 text-sm rounded-lg;
+  }
+
+  .alert-warning {
+    @apply bg-yellow-50 border-yellow-800 text-yellow-800;
+  }
+
+  .link {
+    @apply underline decoration-blue-500 hover:decoration-transparent hover:text-blue-500 underline-offset-1;
+  }
+}
