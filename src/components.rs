@@ -127,7 +127,7 @@ pub fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
                 autofocus=true,
                 type="url",
                 id="url",
-                placeholder="example.com/podcast-feed",
+                placeholder="example.com/feed.xml",
                 autocomplete="off",
                 bind:value=url_str,
                 )
