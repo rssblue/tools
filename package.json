@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "tailwind:serve": "tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css --watch",
+    "tailwind:build": "tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css --minify",
+    "serve": "tailwind:serve & trunk serve",
+    "build": "tailwind:build & & trunk build --release"
+  },
+
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.3",
+    "@tailwindcss/typography": "^0.5.7",
+    "tailwindcss": "^3.2.1"
+  }
+}

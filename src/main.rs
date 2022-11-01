@@ -1,31 +1,39 @@
-use rocket::fs::{relative, FileServer};
-use rocket::get;
-use rocket::launch;
-use rocket::request::Request;
-use rocket::response::content::RawHtml;
-use rocket::{catch, catchers};
+use sycamore::prelude::*;
+use sycamore_router::{HistoryIntegration, Route, Router};
 
-static INDEX_FILE: &str = include_str!("../app/dist/index.html");
+mod components;
 
-#[get("/")]
-fn index() -> RawHtml<String> {
-    RawHtml(INDEX_FILE.replace("{{ title }}", "RSS Blue Tools"))
+#[derive(Route)]
+enum AppRoutes {
+    #[to("/")]
+    Index,
+    #[to("/podcast-guid")]
+    PodcastGuid,
+    #[not_found]
+    NotFound,
 }
 
-#[get("/podcast-guid")]
-fn podcast_guid() -> RawHtml<String> {
-    RawHtml(INDEX_FILE.replace("{{ title }}", "Podcast GUID | RSS Blue Tools"))
+fn main() {
+    sycamore::render(|cx| {
+        view! { cx,
+            Router(
+                integration=HistoryIntegration::new(),
+                view=switch,
+            )
+        }
+    });
 }
 
-#[catch(404)]
-fn not_found(_: &Request) -> RawHtml<String> {
-    RawHtml(INDEX_FILE.replace("{{ title }}", "Page Not Found | RSS Blue Tools"))
-}
-
-#[launch]
-fn rocket() -> _ {
-    rocket::build()
-        .register("/", catchers![not_found])
-        .mount("/", rocket::routes![index, podcast_guid])
-        .mount("/", FileServer::from(relative!("/app/dist")))
+fn switch<'a, G: Html>(cx: Scope<'a>, route: &'a ReadSignal<AppRoutes>) -> View<G> {
+    view! { cx,
+        components::Common {
+            (match route.get().as_ref() {
+                AppRoutes::Index => view!{ cx, components::Index{}},
+                AppRoutes::PodcastGuid => view!{ cx, components::PodcastGuid{}},
+                AppRoutes::NotFound => view! { cx,
+                    "404 Not Found"
+                },
+            })
+        }
+    }
 }
