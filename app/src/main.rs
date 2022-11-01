@@ -1,7 +1,9 @@
 use sycamore::prelude::*;
-use sycamore_router::{HistoryIntegration, Route, Router};
+use sycamore_router::{Integration, Route, Router};
 use url::Url;
 use uuid::Uuid;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 
 #[derive(Route)]
 enum AppRoutes {
@@ -17,7 +19,7 @@ fn main() {
     sycamore::render(|cx| {
         view! { cx,
             Router(
-                integration=HistoryIntegration::new(),
+                integration=SimpleIntegration::new(),
                 view=|cx, route: &ReadSignal<AppRoutes>| {
                     view! { cx,
                         Common {
@@ -230,4 +232,40 @@ fn update_guid(url_str: String) -> (Option<String>, Vec<Warning>) {
     let uuid = Uuid::new_v5(&NAMESPACE_PODCAST, url_str.as_bytes()).to_string();
 
     (Some(uuid), warnings)
+}
+
+#[derive(Default, Debug)]
+pub struct SimpleIntegration {
+    _internal: (),
+}
+
+impl SimpleIntegration {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+/// Copy of [HistoryIntegration](sycamore_router::HistoryIntegration), except that nothing is done
+/// for `click_handler`; instead content is fetched from the server.
+impl Integration for SimpleIntegration {
+    fn current_pathname(&self) -> String {
+        web_sys::window()
+            .unwrap_throw()
+            .location()
+            .pathname()
+            .unwrap_throw()
+    }
+
+    fn on_popstate(&self, f: Box<dyn FnMut()>) {
+        let closure = Closure::wrap(f);
+        web_sys::window()
+            .unwrap_throw()
+            .add_event_listener_with_callback("popstate", closure.as_ref().unchecked_ref())
+            .unwrap_throw();
+        closure.forget();
+    }
+
+    fn click_handler(&self) -> Box<dyn Fn(web_sys::Event)> {
+        Box::new(|_| {})
+    }
 }

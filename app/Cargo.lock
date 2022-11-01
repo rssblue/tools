@@ -22,6 +22,8 @@ dependencies = [
  "sycamore-router",
  "url",
  "uuid",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
