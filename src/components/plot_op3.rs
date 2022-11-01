@@ -6,14 +6,18 @@ use sycamore::suspense::Suspense;
 
 #[derive(Debug, Deserialize, Eq, Clone)]
 enum Continent {
+    #[serde(rename = "AF")]
+    Africa,
+    #[serde(rename = "AN")]
+    Antarctica,
     #[serde(rename = "AS")]
     Asia,
-    #[serde(rename = "AU")]
-    Australia,
     #[serde(rename = "EU")]
     Europe,
     #[serde(rename = "NA")]
     NorthAmerica,
+    #[serde(rename = "OC")]
+    Oceania,
     #[serde(rename = "SA")]
     SouthAmerica,
 }
@@ -21,10 +25,12 @@ enum Continent {
 impl std::fmt::Display for Continent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Africa => write!(f, "Africa"),
+            Self::Antarctica => write!(f, "Antarctica"),
             Self::Asia => write!(f, "Asia"),
-            Self::Australia => write!(f, "Australia"),
             Self::Europe => write!(f, "Europe"),
             Self::NorthAmerica => write!(f, "North America"),
+            Self::Oceania => write!(f, "Oceania"),
             Self::SouthAmerica => write!(f, "South America"),
         }
     }
@@ -54,17 +60,20 @@ struct Op3Response {
 
 #[component]
 pub async fn Continents<G: Html>(cx: Scope<'_>) -> View<G> {
-    let mut op3_response = Op3Response { rows: vec![] };
-    if let Ok(resp) = reqwest_wasm::get(
-        "https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=10",
+    let resp = match reqwest_wasm::get(
+        "https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=100",
     )
     .await
     {
-        op3_response = match resp.json::<Op3Response>().await {
-            Ok(result) => result,
-            Err(_) => Op3Response { rows: vec![] },
-        };
-    }
+        Ok(resp) => resp,
+        Err(_) => return view! {cx, "Could not fetch the request."},
+    };
+
+    let op3_response = match resp.json::<Op3Response>().await {
+        Ok(result) => result,
+        Err(_) => return view! {cx, "Could not deserialize."},
+    };
+
     let mut continent_counts: HashMap<Continent, usize> = HashMap::new();
 
     for row in op3_response.rows {
@@ -75,15 +84,30 @@ pub async fn Continents<G: Html>(cx: Scope<'_>) -> View<G> {
     }
 
     let mut continent_counts: Vec<(Continent, usize)> = continent_counts.into_iter().collect();
+    let num_continents = continent_counts.len();
     continent_counts.sort_by(|a, b| b.1.cmp(&a.1));
     let continent_count_views: View<G> = View::new_fragment(
         continent_counts
             .into_iter()
-            .map(|(continent, count)| view! { cx, li { (continent) ": " (count)} })
+            .map(|(continent, count)| {
+                view! { cx, tr {
+                    th(scope="row") { (continent) }
+                    td(style=format!("--size: calc( {count} / 100 )")) {
+                        span(class="data") {
+                            (count)
+                        }
+                    }
+                } }
+            })
             .collect(),
     );
+
     view! {cx,
-        (continent_count_views)
+    table(class="charts-css bar show-labels labels-align-start", style=format!("height: {}px;", num_continents*50)) {
+        tbody {
+            (continent_count_views)
+        }
+    }
     }
 }
 
@@ -111,56 +135,8 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
         "!"
     }
 
-    ul {
-        Suspense(fallback=view! { cx, "Loading..." }) {
-            Continents {}
-        }
+    Suspense(fallback=view! { cx, "Loading..." }) {
+        Continents {}
     }
-
-    table(class="charts-css bar show-labels", style="height: 150px;") {
-        tbody {
-            tr {
-                th(scope="row") { "North America" }
-                td(style="--size: calc( 10 / 12 )") {
-                    span(class="data") {
-                        "10"
-                    }
-                }
-            }
-            tr {
-                th(scope="row") { "South America" }
-                td(style="--size: calc( 2 / 12 )") {
-                    span(class="data") {
-                        "2"
-                    }
-                }
-            }
-        }
-    }
-
-    //// form(class="space-y-4") {
-    ////     // Prevent submission with "Enter".
-    ////     button(
-    ////         type="submit",
-    ////         disabled=true,
-    ////         style="display: none",
-    ////         aria-hidden="true"
-    ////         ){}
-    ////     div{
-    ////         label(for="url") { "Media file's URL" }
-    ////         input(
-    ////             class="input-text",
-    ////             spellcheck=false,
-    ////             autofocus=true,
-    ////             type="url",
-    ////             id="url",
-    ////             placeholder="https://example.com/episode-1.mp3",
-    ////             autocomplete="off",
-    ////             // bind:value=url_str,
-    ////             )
-    ////     }
-
-    //// }
-
     }
 }
