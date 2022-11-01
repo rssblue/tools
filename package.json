@@ -2,8 +2,8 @@
   "scripts": {
     "tailwind:serve": "tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css --watch",
     "tailwind:build": "tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css --minify",
-    "serve": "tailwind:serve & trunk serve",
-    "build": "tailwind:build & trunk build --release"
+    "serve": "npm run tailwind:serve & trunk serve",
+    "build": "npm run tailwind:build && trunk build --release"
   },
 
   "devDependencies": {
