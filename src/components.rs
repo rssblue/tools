@@ -2,6 +2,9 @@ use sycamore::prelude::*;
 use url::Url;
 use uuid::Uuid;
 
+mod plot_op3;
+pub use plot_op3::PlotOp3;
+
 #[derive(Prop)]
 pub struct CommonProps<'a, G: Html> {
     children: Children<'a, G>,
@@ -78,6 +81,10 @@ pub fn Index<G: Html>(cx: Scope) -> View<G> {
             class=format!("btn btn-primary"),
             href="/podcast-guid",
             ) { "Podcast GUID" }
+        a(
+            class=format!("btn btn-primary"),
+            href="/plot-op3",
+            ) { "Plot OP3" }
     }
     }
 }

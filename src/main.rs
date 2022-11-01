@@ -9,6 +9,8 @@ enum AppRoutes {
     Index,
     #[to("/podcast-guid")]
     PodcastGuid,
+    #[to("/plot-op3")]
+    PlotOp3,
     #[not_found]
     NotFound,
 }
@@ -30,6 +32,7 @@ fn switch<'a, G: Html>(cx: Scope<'a>, route: &'a ReadSignal<AppRoutes>) -> View<
             (match route.get().as_ref() {
                 AppRoutes::Index => view!{ cx, components::Index{}},
                 AppRoutes::PodcastGuid => view!{ cx, components::PodcastGuid{}},
+                AppRoutes::PlotOp3 => view!{ cx, components::PlotOp3{}},
                 AppRoutes::NotFound => view! { cx,
                     "404 Not Found"
                 },

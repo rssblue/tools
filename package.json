@@ -3,7 +3,7 @@
     "tailwind:serve": "tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css --watch",
     "tailwind:build": "tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css --minify",
     "tailwind:build-simple": "tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css",
-    "serve": "npm run tailwind:build-simple && (npm run tailwind:serve & trunk serve)",
+    "serve": "npm run tailwind:build-simple && trunk serve",
     "build": "npm run tailwind:build && trunk build --release"
   },
 
