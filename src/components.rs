@@ -11,16 +11,25 @@ pub struct CommonProps<'a, G: Html> {
 pub fn Common<'a, G: Html>(cx: Scope<'a>, props: CommonProps<'a, G>) -> View<G> {
     let children = props.children.call(cx);
     view! { cx,
-    a(href="https://rssblue.com") {
-        img(
-            src="https://rssblue.com/static/dist/img/logo.svg",
-            class="h-10 mx-auto mt-3 mb-7",
-            alt="RSS Blue Logo",
-            ){}
-    }
+    Nav {}
     main(class="flex-grow") {
         div(class="pt-4 pb-7 mx-auto px-2 lg:px-0 max-w-prose") {
         (children)
+        }
+    }
+    }
+}
+
+#[component]
+pub fn Nav<G: Html>(cx: Scope) -> View<G> {
+    view! { cx,
+    nav {
+        a(href="https://rssblue.com") {
+            img(
+                src="https://rssblue.com/static/dist/img/logo.svg",
+                class="h-10 mx-auto mt-3 mb-7",
+                alt="RSS Blue Logo",
+                ){}
         }
     }
     }
