@@ -9,23 +9,17 @@ static INDEX_FILE: &str = include_str!("../app/dist/index.html");
 
 #[get("/")]
 fn index() -> RawHtml<String> {
-    RawHtml(INDEX_FILE.replace("<title></title>", "<title>RSS Blue Tools</title>"))
+    RawHtml(INDEX_FILE.replace("{{ title }}", "RSS Blue Tools"))
 }
 
 #[get("/podcast-guid")]
 fn podcast_guid() -> RawHtml<String> {
-    RawHtml(INDEX_FILE.replace(
-        "<title></title>",
-        "<title>Podcast GUID | RSS Blue Tools</title>",
-    ))
+    RawHtml(INDEX_FILE.replace("{{ title }}", "Podcast GUID | RSS Blue Tools"))
 }
 
 #[catch(404)]
 fn not_found(_: &Request) -> RawHtml<String> {
-    RawHtml(INDEX_FILE.replace(
-        "<title></title>",
-        "<title>Not Found | RSS Blue Tools</title>",
-    ))
+    RawHtml(INDEX_FILE.replace("{{ title }}", "Page Not Found | RSS Blue Tools"))
 }
 
 #[launch]
