@@ -11,3 +11,9 @@ uuid = { version = "1.2.1", features = ["v5", "fast-rng", "macro-diagnostics"] }
 url = "2.3.1"
 web-sys = "0.3.60"
 wasm-bindgen = "0.2.83"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+opt-level = "s"
+lto = true
