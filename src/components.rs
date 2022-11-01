@@ -26,11 +26,6 @@ pub fn Common<'a, G: Html>(cx: Scope<'a>, props: CommonComponentProps<'a, G>) ->
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
-struct Warning {
-    msg: String,
-}
-
 enum Icon {
     AlertCircle(String),
 }
@@ -45,7 +40,7 @@ impl std::fmt::Display for Icon {
 }
 
 #[component(inline_props)]
-fn WarningComponent<G: Html>(cx: Scope, warning: Warning) -> View<G> {
+fn Warning<G: Html>(cx: Scope, warning: String) -> View<G> {
     view! {cx,
     div(
         class="flex items-center alert alert-warning",
@@ -54,7 +49,7 @@ fn WarningComponent<G: Html>(cx: Scope, warning: Warning) -> View<G> {
         span(
             dangerously_set_inner_html=Icon::AlertCircle("inline flex-shrink-0 mr-3 w-6 h-6 stroke-2".to_string()).to_string().as_str(),
             ){}
-        span(dangerously_set_inner_html=warning.msg.as_str()){}
+        span(dangerously_set_inner_html=warning.as_str()){}
     }
     }
 }
@@ -132,7 +127,7 @@ pub fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
             view! { cx,
                 Indexed(
                     iterable=warnings,
-                    view=|cx, warning| view! { cx, WarningComponent(warning=warning)}
+                    view=|cx, warning| view! { cx, Warning(warning=warning)}
                     )
             }
         } else {
@@ -160,7 +155,7 @@ pub fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
     }
 }
 
-fn update_guid(url_str: String) -> (Option<String>, Vec<Warning>) {
+fn update_guid(url_str: String) -> (Option<String>, Vec<String>) {
     const NAMESPACE_PODCAST: uuid::Uuid = uuid::Uuid::from_bytes([
         0xea, 0xd4, 0xc2, 0x36, 0xbf, 0x58, 0x58, 0xc6, 0xa2, 0xc6, 0xa6, 0xb2, 0x8d, 0x12, 0x8c,
         0xb6,
@@ -173,10 +168,10 @@ fn update_guid(url_str: String) -> (Option<String>, Vec<Warning>) {
     }
 
     if url_str.ends_with('/') {
-        warnings.push(Warning {
-            msg: "To generate a valid GUID, trailing slashes should be removed from the URL."
+        warnings.push(
+            "To generate a valid GUID, trailing slashes should be removed from the URL."
                 .to_string(),
-        });
+        );
     }
 
     if let Ok(url) = Url::parse(url_str.as_str()) {
@@ -190,13 +185,11 @@ fn update_guid(url_str: String) -> (Option<String>, Vec<Warning>) {
         } else {
             "To generate a valid GUID, protocol scheme should be removed from the URL.".to_string()
         };
-        warnings.push(Warning { msg });
+        warnings.push(msg);
     } else {
         let new_url_str = format!("https://{}", url_str);
         if Url::parse(new_url_str.as_str()).is_err() {
-            warnings.push(Warning {
-                msg: "This does not appear to be a valid URL.".to_string(),
-            });
+            warnings.push("This does not appear to be a valid URL.".to_string());
         }
     }
 
