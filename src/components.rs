@@ -3,12 +3,12 @@ use url::Url;
 use uuid::Uuid;
 
 #[derive(Prop)]
-pub struct CommonComponentProps<'a, G: Html> {
+pub struct CommonProps<'a, G: Html> {
     children: Children<'a, G>,
 }
 
 #[component]
-pub fn Common<'a, G: Html>(cx: Scope<'a>, props: CommonComponentProps<'a, G>) -> View<G> {
+pub fn Common<'a, G: Html>(cx: Scope<'a>, props: CommonProps<'a, G>) -> View<G> {
     let children = props.children.call(cx);
     view! { cx,
     a(href="https://rssblue.com") {
