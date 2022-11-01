@@ -44,13 +44,8 @@ impl std::fmt::Display for Icon {
     }
 }
 
-#[derive(Prop)]
-struct WarningComponentProps {
-    warning: Warning,
-}
-
-#[component]
-fn WarningComponent<G: Html>(cx: Scope, props: WarningComponentProps) -> View<G> {
+#[component(inline_props)]
+fn WarningComponent<G: Html>(cx: Scope, warning: Warning) -> View<G> {
     view! {cx,
     div(
         class="flex items-center alert alert-warning",
@@ -59,7 +54,7 @@ fn WarningComponent<G: Html>(cx: Scope, props: WarningComponentProps) -> View<G>
         span(
             dangerously_set_inner_html=Icon::AlertCircle("inline flex-shrink-0 mr-3 w-6 h-6 stroke-2".to_string()).to_string().as_str(),
             ){}
-        span(dangerously_set_inner_html=props.warning.msg.as_str()){}
+        span(dangerously_set_inner_html=warning.msg.as_str()){}
     }
     }
 }
