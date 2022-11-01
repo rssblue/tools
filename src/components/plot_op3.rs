@@ -1,23 +1,94 @@
-use ndarray::Array;
-use ndarray_stats::{
-    histogram::{strategies::Auto, GridBuilder},
-    HistogramExt,
-};
+use futures::executor;
+use serde::Deserialize;
+use std::collections::HashMap;
 use sycamore::prelude::*;
+use sycamore::suspense::Suspense;
+
+#[derive(Debug, Deserialize, Eq, Clone)]
+enum Continent {
+    #[serde(rename = "AS")]
+    Asia,
+    #[serde(rename = "AU")]
+    Australia,
+    #[serde(rename = "EU")]
+    Europe,
+    #[serde(rename = "NA")]
+    NorthAmerica,
+    #[serde(rename = "SA")]
+    SouthAmerica,
+}
+
+impl std::fmt::Display for Continent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Asia => write!(f, "Asia"),
+            Self::Australia => write!(f, "Australia"),
+            Self::Europe => write!(f, "Europe"),
+            Self::NorthAmerica => write!(f, "North America"),
+            Self::SouthAmerica => write!(f, "South America"),
+        }
+    }
+}
+
+impl PartialEq for Continent {
+    fn eq(&self, other: &Self) -> bool {
+        format!("{:?}", self) == format!("{:?}", other)
+    }
+}
+
+impl std::hash::Hash for Continent {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        format!("{:?}", self).hash(state)
+    }
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct Row {
+    continent: Continent,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct Op3Response {
+    rows: Vec<Row>,
+}
 
 #[component]
-pub fn PlotOp3<G: Html>(cx: Scope) -> View<G> {
-    let times = vec![7, 12, 5, 4, 1, 2];
-    let observations = Array::from_shape_vec((6, 1), times).unwrap();
-    let grid = GridBuilder::<Auto<usize>>::from_array(&observations)
-        .unwrap()
-        .build();
+pub async fn Continents<G: Html>(cx: Scope<'_>) -> View<G> {
+    let mut op3_response = Op3Response { rows: vec![] };
+    if let Ok(resp) = reqwest_wasm::get(
+        "https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=10",
+    )
+    .await
+    {
+        op3_response = match resp.json::<Op3Response>().await {
+            Ok(result) => result,
+            Err(_) => Op3Response { rows: vec![] },
+        };
+    }
+    let mut continent_counts: HashMap<Continent, usize> = HashMap::new();
 
-    let histogram = observations.histogram(grid.clone());
+    for row in op3_response.rows {
+        match continent_counts.get(&row.continent) {
+            Some(count) => continent_counts.insert(row.continent, count + 1),
+            None => continent_counts.insert(row.continent, 1),
+        };
+    }
 
-    let counts = histogram.counts().to_owned();
-    let bins = grid.projections().to_owned();
+    let mut continent_counts: Vec<(Continent, usize)> = continent_counts.into_iter().collect();
+    continent_counts.sort_by(|a, b| b.1.cmp(&a.1));
+    let continent_count_views: View<G> = View::new_fragment(
+        continent_counts
+            .into_iter()
+            .map(|(continent, count)| view! { cx, li { (continent) ": " (count)} })
+            .collect(),
+    );
+    view! {cx,
+        (continent_count_views)
+    }
+}
 
+#[component]
+pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     view! { cx,
     h1(class="mb-3") { "Plot OP3" }
     h2(class="mt-3 text-gray-500") { "Visualize requests for a podcast media file." }
@@ -40,10 +111,31 @@ pub fn PlotOp3<G: Html>(cx: Scope) -> View<G> {
         "!"
     }
 
-    p {
-        (format!("{counts:?}"))
-            br {}
-        (format!("{bins:?}"))
+    ul {
+        Suspense(fallback=view! { cx, "Loading..." }) {
+            Continents {}
+        }
+    }
+
+    table(class="charts-css bar show-labels", style="height: 150px;") {
+        tbody {
+            tr {
+                th(scope="row") { "North America" }
+                td(style="--size: calc( 10 / 12 )") {
+                    span(class="data") {
+                        "10"
+                    }
+                }
+            }
+            tr {
+                th(scope="row") { "South America" }
+                td(style="--size: calc( 2 / 12 )") {
+                    span(class="data") {
+                        "2"
+                    }
+                }
+            }
+        }
     }
 
     //// form(class="space-y-4") {
