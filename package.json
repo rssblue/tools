@@ -3,7 +3,7 @@
     "tailwind:serve": "tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css --watch",
     "tailwind:build": "tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css --minify",
     "serve": "tailwind:serve & trunk serve",
-    "build": "tailwind:build & & trunk build --release"
+    "build": "tailwind:build & trunk build --release"
   },
 
   "devDependencies": {
