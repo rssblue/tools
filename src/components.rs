@@ -36,27 +36,33 @@ pub fn Nav<G: Html>(cx: Scope) -> View<G> {
 }
 
 enum Icon {
-    AlertCircle(String),
+    AlertCircle,
 }
 
 impl std::fmt::Display for Icon {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Self::AlertCircle(classes) => format!("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' class='{classes}'><circle cx='12' cy='12' r='10'></circle><line x1='12' y1='8' x2='12' y2='12'></line><line x1='12' y1='16' x2='12.01' y2='16'></line></svg>"),
+        let svg = match self {
+            Self::AlertCircle => {
+                include_str!("../assets/svg/feather-icons/alert-circle.svg")
+            }
         };
-        write!(f, "{s}")
+        write!(f, "{svg}")
     }
 }
 
 #[component(inline_props)]
 fn Warning<G: Html>(cx: Scope, warning: String) -> View<G> {
+    let icon = Icon::AlertCircle
+        .to_string()
+        .replace("{{ class }}", "inline flex-shrink-0 mr-3 w-6 h-6 stroke-2");
+
     view! {cx,
     div(
         class="flex items-center alert alert-warning",
         role="alert",
         ) {
         span(
-            dangerously_set_inner_html=Icon::AlertCircle("inline flex-shrink-0 mr-3 w-6 h-6 stroke-2".to_string()).to_string().as_str(),
+            dangerously_set_inner_html=icon.as_str(),
             ){}
         span(dangerously_set_inner_html=warning.as_str()){}
     }
