@@ -1,4 +1,3 @@
-use futures::executor;
 use serde::Deserialize;
 use std::collections::HashMap;
 use sycamore::prelude::*;
@@ -74,6 +73,7 @@ pub async fn Continents<G: Html>(cx: Scope<'_>) -> View<G> {
         Err(_) => return view! {cx, "Could not deserialize."},
     };
 
+    let num_rows = op3_response.rows.len();
     let mut continent_counts: HashMap<Continent, usize> = HashMap::new();
 
     for row in op3_response.rows {
@@ -82,6 +82,10 @@ pub async fn Continents<G: Html>(cx: Scope<'_>) -> View<G> {
             None => continent_counts.insert(row.continent, 1),
         };
     }
+    let max_count = match continent_counts.clone().into_values().max() {
+        Some(max_count) => max_count,
+        None => num_rows,
+    };
 
     let mut continent_counts: Vec<(Continent, usize)> = continent_counts.into_iter().collect();
     let num_continents = continent_counts.len();
@@ -92,7 +96,7 @@ pub async fn Continents<G: Html>(cx: Scope<'_>) -> View<G> {
             .map(|(continent, count)| {
                 view! { cx, tr {
                     th(scope="row") { (continent) }
-                    td(style=format!("--size: calc( {count} / 100 )")) {
+                    td(style=format!("--size: calc( {count} / {max_count} )")) {
                         span(class="data") {
                             (count)
                         }
@@ -103,7 +107,7 @@ pub async fn Continents<G: Html>(cx: Scope<'_>) -> View<G> {
     );
 
     view! {cx,
-    table(class="charts-css bar show-labels labels-align-start", style=format!("height: {}px;", num_continents*50)) {
+    table(id="my-table", class="charts-css bar show-labels labels-align-start", style=format!("height: {}px;", num_continents*50)) {
         tbody {
             (continent_count_views)
         }

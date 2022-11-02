@@ -28,7 +28,6 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "chrono",
- "futures",
  "getrandom",
  "ndarray",
  "ndarray-stats",

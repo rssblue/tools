@@ -72,4 +72,13 @@
   .link {
     @apply underline decoration-blue-500 hover:decoration-transparent hover:text-blue-500 underline-offset-1;
   }
+
+  #my-table:not(.multiple) tbody tr:nth-of-type(2n + 1) td {
+    @apply bg-blue-100;
+  }
+
+  #my-table:not(.multiple) tbody tr:nth-of-type(2n + 2) td {
+    @apply bg-blue-200;
+  }
+
 }
