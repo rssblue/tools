@@ -98,9 +98,9 @@ fn plot_bars<G: Html>(cx: Scope<'_>, data: &HashMap<String, usize>) -> View<G> {
     }
 }
 
-#[component]
-pub async fn Geography<G: Html>(cx: Scope<'_>) -> View<G> {
-    let response = match fetch_op3().await {
+#[component(inline_props)]
+pub async fn Geography<G: Html>(cx: Scope<'_>, url: String) -> View<G> {
+    let response = match fetch_op3(url).await {
         Ok(response) => response,
         Err(e) => {
             return view! { cx,
@@ -147,9 +147,9 @@ pub async fn Geography<G: Html>(cx: Scope<'_>) -> View<G> {
     }
 }
 
-async fn fetch_op3() -> Result<Op3Response, String> {
+async fn fetch_op3(url: String) -> Result<Op3Response, String> {
     let resp = reqwest_wasm::get(
-        "https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=100",
+        format!("https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=100&url=https://op3.dev/e/{url}"),
     )
     .await
     .map_err(|_| "could not fetch the request")?;
@@ -161,6 +161,16 @@ async fn fetch_op3() -> Result<Op3Response, String> {
 
 #[component]
 pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
+    let url_str = create_signal(cx, String::new());
+    let fetching_data = create_signal(cx, false);
+    let input_cls = create_signal(cx, String::new());
+
+    create_effect(cx, move || {
+        if *fetching_data.get() {
+            input_cls.set("bg-gray-100".to_string());
+        }
+    });
+
     view! { cx,
     h1(class="mb-3") { "Plot OP3" }
     h2(class="mt-3 text-gray-500") { "Visualize requests for a podcast media file." }
@@ -183,7 +193,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
         "!"
     }
 
-    form(class="space-y-4") {
+    form(class="mb-4") {
         // Prevent submission with "Enter".
         button(
             type="submit",
@@ -194,27 +204,48 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
         div{
             label(for="url") { "Media file's URL" }
             div(class="grid grid-cols-4") {
+                div(class="flex flex-row col-span-4 md:col-span-3") {
+                div(
+                    class="block w-full border border-gray-300 pl-3 pr-1 rounded-tl-lg md:rounded-l-lg w-auto flex items-center bg-gray-100 text-gray-800",
+                    disabled=true,
+                    ) {
+                    "https://op3.dev/e/"
+                }
                 input(
-                    class="input-text-base rounded-t-lg md:rounded-l-lg md:rounded-r-none col-span-4 md:col-span-3",
+                    class=format!("input-text-base rounded-tr-lg md:rounded-none md:rounded-r-none pl-1 {}", input_cls.get()),
                     spellcheck=false,
                     autofocus=true,
                     type="url",
                     id="url",
-                    placeholder="https://example.com/episode.mp3",
+                    placeholder="example.com/episode.mp3",
                     autocomplete="off",
+                    disabled=*fetching_data.get(),
+                    bind:value=url_str,
                     )
+                }
                     button(
                         class=format!("btn-base btn-primary rounded-b-lg md:rounded-r-lg md:rounded-l-none col-span-4 md:col-span-1"),
                         type="button",
-                        ) { "Fetch data" }
+                        on:click=|_| { fetching_data.set(true); },
+                        disabled=*fetching_data.get(),
+                        ) {
+                        "Fetch data"
+                    }
             }
 
         }
     }
 
+    (if *fetching_data.get() {
+        view!{cx,
+            Suspense(fallback=view! { cx, "Loading..." }) {
+                Geography(url=url_str.get().to_string())
+            }
+        }
+    } else {
+        view! { cx,
+            }
+    })
 
-    // Suspense(fallback=view! { cx, "Loading..." }) {
-    //     Geography {}
-    // }
     }
 }

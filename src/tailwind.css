@@ -61,6 +61,10 @@
     @apply text-gray-50 bg-blue-500 hover:bg-blue-600 custom-shadow;
   }
 
+  .btn-primary[disabled] {
+    @apply bg-gray-500 hover:bg-gray-500;
+  }
+
   .input-text-base {
     @apply block w-full border-gray-300 shadow-sm focus:ring-blue-100 focus:ring focus:outline-none focus:shadow-none placeholder:text-gray-300 custom-transition;
   }
