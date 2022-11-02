@@ -1,8 +1,8 @@
 {
   "scripts": {
-    "tailwind:serve": "tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css --watch",
-    "tailwind:build": "tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css --minify",
-    "tailwind:build-simple": "tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css",
+    "tailwind:serve": "tailwindcss -i ./src/tailwind.css -o ./target/tailwind.css --watch",
+    "tailwind:build": "tailwindcss -i ./src/tailwind.css -o ./target/tailwind.css --minify",
+    "tailwind:build-simple": "tailwindcss -i ./src/tailwind.css -o ./target/tailwind.css",
     "serve": "npm run tailwind:build-simple && trunk serve",
     "build": "npm run tailwind:build && trunk build --release"
   },
