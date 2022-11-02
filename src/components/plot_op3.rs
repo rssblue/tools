@@ -212,7 +212,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
                     "https://op3.dev/e/"
                 }
                 input(
-                    class=format!("input-text-base rounded-tr-lg md:rounded-none md:rounded-r-none pl-1 {}", input_cls.get()),
+                    class=format!("input-text-base rounded-tr-lg md:rounded-none md:rounded-r-none pl-1 text-ellipsis {}", input_cls.get()),
                     spellcheck=false,
                     autofocus=true,
                     type="url",
