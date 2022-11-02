@@ -1,3 +1,4 @@
+use crate::components::utils;
 use serde::Deserialize;
 use std::collections::HashMap;
 use sycamore::prelude::*;
@@ -98,18 +99,21 @@ fn plot_bars<G: Html>(cx: Scope<'_>, data: &HashMap<String, usize>) -> View<G> {
 }
 
 #[component]
-pub async fn Continents<G: Html>(cx: Scope<'_>) -> View<G> {
+pub async fn Geography<G: Html>(cx: Scope<'_>) -> View<G> {
     let response = match fetch_op3().await {
         Ok(response) => response,
         Err(e) => {
             return view! { cx,
-                div {
-                    "Error: "
-                    (e)
-                }
-            }
+                utils::Warning(warning=format!("Error: {e}"))
+            };
         }
     };
+
+    if response.rows.is_empty() {
+        return view! { cx,
+            utils::Warning(warning="No data found for the URL.".to_string())
+        };
+    }
 
     // Get continent and country counts.
     let mut continent_counts: HashMap<String, usize> = HashMap::new();
@@ -156,65 +160,6 @@ async fn fetch_op3() -> Result<Op3Response, String> {
 }
 
 #[component]
-pub async fn Countries<G: Html>(cx: Scope<'_>) -> View<G> {
-    let resp = match reqwest_wasm::get(
-        "https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=100",
-    )
-    .await
-    {
-        Ok(resp) => resp,
-        Err(_) => return view! {cx, "Could not fetch the request."},
-    };
-
-    let op3_response = match resp.json::<Op3Response>().await {
-        Ok(result) => result,
-        Err(_) => return view! {cx, "Could not deserialize."},
-    };
-
-    let num_rows = op3_response.rows.len();
-    let mut country_counts: HashMap<isocountry::CountryCode, usize> = HashMap::new();
-
-    for row in op3_response.rows {
-        match country_counts.get(&row.country) {
-            Some(count) => country_counts.insert(row.country, count + 1),
-            None => country_counts.insert(row.country, 1),
-        };
-    }
-    let max_count = match country_counts.clone().into_values().max() {
-        Some(max_count) => max_count,
-        None => num_rows,
-    };
-
-    let mut country_counts: Vec<(isocountry::CountryCode, usize)> =
-        country_counts.into_iter().collect();
-    let num_countries = country_counts.len();
-    country_counts.sort_by(|a, b| b.1.cmp(&a.1));
-    let country_count_views: View<G> = View::new_fragment(
-        country_counts
-            .into_iter()
-            .map(|(country, count)| {
-                view! { cx, tr {
-                    th(scope="row") { (country) }
-                    td(style=format!("--size: calc( {count} / {max_count} )")) {
-                        span(class="data") {
-                            (count)
-                        }
-                    }
-                } }
-            })
-            .collect(),
-    );
-
-    view! {cx,
-    table(id="my-table", class="charts-css bar show-labels labels-align-start", style=format!("height: {}px;", num_countries*50)) {
-        tbody {
-            (country_count_views)
-        }
-    }
-    }
-}
-
-#[component]
 pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     view! { cx,
     h1(class="mb-3") { "Plot OP3" }
@@ -239,7 +184,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     }
 
     Suspense(fallback=view! { cx, "Loading..." }) {
-        Continents {}
+        Geography {}
     }
     }
 }

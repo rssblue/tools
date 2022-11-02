@@ -5,6 +5,8 @@ use uuid::Uuid;
 mod plot_op3;
 pub use plot_op3::PlotOp3;
 
+pub mod utils;
+
 #[derive(Prop)]
 pub struct CommonProps<'a, G: Html> {
     children: Children<'a, G>,
@@ -34,40 +36,6 @@ pub fn Nav<G: Html>(cx: Scope) -> View<G> {
                 alt="RSS Blue Logo",
                 ){}
         }
-    }
-    }
-}
-
-enum Icon {
-    AlertCircle,
-}
-
-impl std::fmt::Display for Icon {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let svg = match self {
-            Self::AlertCircle => {
-                include_str!("../assets/svg/feather-icons/alert-circle.svg")
-            }
-        };
-        write!(f, "{svg}")
-    }
-}
-
-#[component(inline_props)]
-fn Warning<G: Html>(cx: Scope, warning: String) -> View<G> {
-    let icon = Icon::AlertCircle
-        .to_string()
-        .replace("{{ class }}", "inline flex-shrink-0 mr-3 w-6 h-6 stroke-2");
-
-    view! {cx,
-    div(
-        class="flex items-center alert alert-warning",
-        role="alert",
-        ) {
-        span(
-            dangerously_set_inner_html=icon.as_str(),
-            ){}
-        span(dangerously_set_inner_html=warning.as_str()){}
     }
     }
 }
@@ -149,7 +117,7 @@ pub fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
             view! { cx,
                 Indexed(
                     iterable=warnings,
-                    view=|cx, warning| view! { cx, Warning(warning=warning)}
+                    view=|cx, warning| view! { cx, utils::Warning(warning=warning)}
                     )
             }
         } else {
