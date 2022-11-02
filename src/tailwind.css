@@ -73,10 +73,6 @@
     @apply underline decoration-blue-500 hover:decoration-transparent hover:text-blue-500 underline-offset-1;
   }
 
-  #my-table {
-    @apply text-base;
-  }
-
   #my-table:not(.multiple) tbody tr:nth-of-type(2n + 1) td {
     @apply bg-blue-100;
   }
@@ -86,10 +82,11 @@
   }
 
   #my-table tbody tr td {
+    @apply text-base;
   }
 
   #my-table tbody tr th {
-    @apply text-base;
+    @apply text-sm;
   }
 
 }
