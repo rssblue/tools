@@ -183,8 +183,38 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
         "!"
     }
 
-    Suspense(fallback=view! { cx, "Loading..." }) {
-        Geography {}
+    form(class="space-y-4") {
+        // Prevent submission with "Enter".
+        button(
+            type="submit",
+            disabled=true,
+            style="display: none",
+            aria-hidden="true"
+            ){}
+        div{
+            label(for="url") { "Media file's URL" }
+            div(class="grid grid-cols-4") {
+                input(
+                    class="input-text-base rounded-t-lg md:rounded-l-lg md:rounded-r-none col-span-4 md:col-span-3",
+                    spellcheck=false,
+                    autofocus=true,
+                    type="url",
+                    id="url",
+                    placeholder="https://example.com/episode.mp3",
+                    autocomplete="off",
+                    )
+                    button(
+                        class=format!("btn-base btn-primary rounded-b-lg md:rounded-r-lg md:rounded-l-none col-span-4 md:col-span-1"),
+                        type="button",
+                        ) { "Fetch data" }
+            }
+
+        }
     }
+
+
+    // Suspense(fallback=view! { cx, "Loading..." }) {
+    //     Geography {}
+    // }
     }
 }

@@ -49,16 +49,24 @@
     @apply file:shadow hover:file:shadow-none file:transition file:duration-300 file:ease-in-out;
   }
 
+  .btn-base {
+    @apply inline-block text-center px-5 py-2 no-underline font-bold;
+  }
+
   .btn {
-    @apply inline-block text-center px-5 py-2 no-underline rounded-xl font-bold;
+    @apply btn-base rounded-xl;
   }
 
   .btn-primary {
     @apply text-gray-50 bg-blue-500 hover:bg-blue-600 custom-shadow;
   }
 
+  .input-text-base {
+    @apply block w-full border-gray-300 shadow-sm focus:ring-blue-100 focus:ring focus:outline-none focus:shadow-none placeholder:text-gray-300 custom-transition;
+  }
+
   .input-text {
-    @apply block w-full rounded-xl border-gray-300 shadow-sm focus:ring-blue-100 focus:ring focus:outline-none focus:shadow-none placeholder:text-gray-300 custom-transition;
+    @apply rounded-xl input-text-base;
   }
 
   .alert {
