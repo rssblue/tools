@@ -50,6 +50,7 @@ impl std::hash::Hash for Continent {
 #[derive(Debug, Deserialize, PartialEq)]
 struct Row {
     continent: Continent,
+    country: isocountry::CountryCode,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -57,8 +58,105 @@ struct Op3Response {
     rows: Vec<Row>,
 }
 
+fn plot_bars<G: Html>(cx: Scope<'_>, data: &HashMap<String, usize>) -> View<G> {
+    // Convert to vector of tuples.
+    let data: Vec<(String, usize)> = data.iter().map(|(k, v)| (k.clone(), *v)).collect();
+
+    // Sort by count.
+    let mut data = data;
+    data.sort_by(|(_, a), (_, b)| b.cmp(a));
+
+    let num_points = data.len();
+
+    let max_count = match data.iter().map(|(_, count)| count).max() {
+        Some(max) => *max,
+        None => 1,
+    };
+
+    let views: View<G> = View::new_fragment(
+        data.into_iter()
+            .map(|(name, count)| {
+                view! { cx, tr {
+                    th(scope="row") { (name) }
+                    td(style=format!("--size: calc( {count} / {max_count} )")) {
+                        span(class="data") {
+                            (count)
+                        }
+                    }
+                } }
+            })
+            .collect(),
+    );
+
+    view! {cx,
+    table(id="my-table", class="charts-css bar show-labels labels-align-start", style=format!("height: {}px;", num_points*50)) {
+        tbody {
+            (views)
+        }
+    }
+    }
+}
+
 #[component]
 pub async fn Continents<G: Html>(cx: Scope<'_>) -> View<G> {
+    let response = match fetch_op3().await {
+        Ok(response) => response,
+        Err(e) => {
+            return view! { cx,
+                div {
+                    "Error: "
+                    (e)
+                }
+            }
+        }
+    };
+
+    // Get continent and country counts.
+    let mut continent_counts: HashMap<String, usize> = HashMap::new();
+    let mut country_counts: HashMap<String, usize> = HashMap::new();
+    for row in response.rows {
+        *continent_counts
+            .entry(row.continent.to_string())
+            .or_insert(0) += 1;
+        *country_counts
+            .entry(row.country.name().to_string())
+            .or_insert(0) += 1;
+    }
+
+    // Use country abbreviations.
+    if let Some(count) = country_counts.remove("United States of America") {
+        country_counts.insert("USA".to_string(), count);
+    }
+    if let Some(count) =
+        country_counts.remove("United Kingdom of Great Britain and Northern Ireland")
+    {
+        country_counts.insert("UK".to_string(), count);
+    }
+
+    view! { cx,
+        div {
+            h2 { "Continents" }
+            (plot_bars(cx, &continent_counts))
+            h2 { "Countries" }
+            (plot_bars(cx, &country_counts))
+        }
+    }
+}
+
+async fn fetch_op3() -> Result<Op3Response, String> {
+    let resp = reqwest_wasm::get(
+        "https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=100",
+    )
+    .await
+    .map_err(|_| "could not fetch the request")?;
+
+    resp.json::<Op3Response>()
+        .await
+        .map_err(|_| "could not deserialize".to_string())
+}
+
+#[component]
+pub async fn Countries<G: Html>(cx: Scope<'_>) -> View<G> {
     let resp = match reqwest_wasm::get(
         "https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=100",
     )
@@ -74,28 +172,29 @@ pub async fn Continents<G: Html>(cx: Scope<'_>) -> View<G> {
     };
 
     let num_rows = op3_response.rows.len();
-    let mut continent_counts: HashMap<Continent, usize> = HashMap::new();
+    let mut country_counts: HashMap<isocountry::CountryCode, usize> = HashMap::new();
 
     for row in op3_response.rows {
-        match continent_counts.get(&row.continent) {
-            Some(count) => continent_counts.insert(row.continent, count + 1),
-            None => continent_counts.insert(row.continent, 1),
+        match country_counts.get(&row.country) {
+            Some(count) => country_counts.insert(row.country, count + 1),
+            None => country_counts.insert(row.country, 1),
         };
     }
-    let max_count = match continent_counts.clone().into_values().max() {
+    let max_count = match country_counts.clone().into_values().max() {
         Some(max_count) => max_count,
         None => num_rows,
     };
 
-    let mut continent_counts: Vec<(Continent, usize)> = continent_counts.into_iter().collect();
-    let num_continents = continent_counts.len();
-    continent_counts.sort_by(|a, b| b.1.cmp(&a.1));
-    let continent_count_views: View<G> = View::new_fragment(
-        continent_counts
+    let mut country_counts: Vec<(isocountry::CountryCode, usize)> =
+        country_counts.into_iter().collect();
+    let num_countries = country_counts.len();
+    country_counts.sort_by(|a, b| b.1.cmp(&a.1));
+    let country_count_views: View<G> = View::new_fragment(
+        country_counts
             .into_iter()
-            .map(|(continent, count)| {
+            .map(|(country, count)| {
                 view! { cx, tr {
-                    th(scope="row") { (continent) }
+                    th(scope="row") { (country) }
                     td(style=format!("--size: calc( {count} / {max_count} )")) {
                         span(class="data") {
                             (count)
@@ -107,9 +206,9 @@ pub async fn Continents<G: Html>(cx: Scope<'_>) -> View<G> {
     );
 
     view! {cx,
-    table(id="my-table", class="charts-css bar show-labels labels-align-start", style=format!("height: {}px;", num_continents*50)) {
+    table(id="my-table", class="charts-css bar show-labels labels-align-start", style=format!("height: {}px;", num_countries*50)) {
         tbody {
-            (continent_count_views)
+            (country_count_views)
         }
     }
     }

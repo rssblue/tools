@@ -86,7 +86,6 @@
   }
 
   #my-table tbody tr th {
-    @apply text-sm;
+    @apply text-xs;
   }
-
 }
