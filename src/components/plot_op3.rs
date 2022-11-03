@@ -1,3 +1,4 @@
+use crate::components::hyper_header::{ByteRangeSpec, Range};
 use crate::components::utils;
 use itertools::Itertools;
 use serde::Deserialize;
@@ -72,6 +73,7 @@ struct Row {
     #[serde(rename = "hashedIpAddress")]
     hashed_ip_address: String,
     method: Method,
+    range: Option<Range>,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -131,6 +133,22 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         }
     };
 
+    // let views: View<G> = View::new_fragment(
+    //     rows.into_iter()
+    //         .map(|row| {
+    //             if let Some(r) = row.range {
+    //                 view! { cx, (format!("{:?}", r)) }
+    //             } else {
+    //                 view! { cx,  }
+    //             }
+    //         })
+    //         .collect(),
+    // );
+
+    // view! {cx,
+    // (views)
+    // }
+
     if rows.is_empty() {
         return view! { cx,
             utils::Warning(warning=format!("No data found for the URL."))
@@ -171,7 +189,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
 
 async fn fetch_op3(url: String) -> Result<Vec<Row>, String> {
     let resp = reqwest_wasm::get(
-        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=100&url=https://op3.dev/e/{url}"),
+        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=1000&url=https://op3.dev/e/{url}"),
     )
     .await
     .map_err(|_| "could not fetch the request")?;
@@ -203,6 +221,40 @@ async fn fetch_op3(url: String) -> Result<Vec<Row>, String> {
 
     // Only keep GET requests.
     rows.retain(|row| row.method == Method::Get);
+
+    // Filter out rows with insufficient range.
+    rows.retain(|row| match row.range.clone() {
+        Some(r) => match r {
+            Range::Bytes(range_specs) => {
+                if range_specs.is_empty() {
+                    false
+                } else {
+                    // Only check the first range.
+                    match range_specs[0] {
+                        ByteRangeSpec::FromTo(from, to) => {
+                            if from != 0 {
+                                return false;
+                            }
+                            // Only keep if more than at 1 MB.
+                            if to - from < 1_000_000 {
+                                return false;
+                            }
+                            true
+                        }
+                        ByteRangeSpec::AllFrom(from) => {
+                            if from != 0 {
+                                return false;
+                            }
+                            true
+                        }
+                        ByteRangeSpec::Last(_) => false,
+                    }
+                }
+            }
+            Range::Unregistered(_, _) => false,
+        },
+        None => true,
+    });
 
     match status {
         reqwest_wasm::StatusCode::OK => Ok(rows),

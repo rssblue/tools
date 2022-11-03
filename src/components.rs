@@ -11,6 +11,8 @@ pub use plot_op3::PlotOp3;
 
 pub mod utils;
 
+pub mod hyper_header;
+
 #[derive(Prop)]
 pub struct CommonProps<'a, G: Html> {
     children: Children<'a, G>,
