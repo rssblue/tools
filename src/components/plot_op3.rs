@@ -99,10 +99,15 @@ fn plot_bars<G: Html>(cx: Scope<'_>, data: &HashMap<String, usize>) -> View<G> {
 }
 
 #[component(inline_props)]
-pub async fn Geography<G: Html>(cx: Scope<'_>, url: String) -> View<G> {
+pub async fn Geography<'a, G: Html>(
+    cx: Scope<'a>,
+    url: String,
+    fetching_data: &'a Signal<bool>,
+) -> View<G> {
     let response = match fetch_op3(url).await {
         Ok(response) => response,
         Err(e) => {
+            fetching_data.set(false);
             return view! { cx,
                 utils::Warning(warning=format!("Error: {e}"))
             };
@@ -110,8 +115,9 @@ pub async fn Geography<G: Html>(cx: Scope<'_>, url: String) -> View<G> {
     };
 
     if response.rows.is_empty() {
+        fetching_data.set(false);
         return view! { cx,
-            utils::Warning(warning="No data found for the URL.".to_string())
+            utils::Warning(warning=format!("No data found for the URL."))
         };
     }
 
@@ -137,6 +143,7 @@ pub async fn Geography<G: Html>(cx: Scope<'_>, url: String) -> View<G> {
         country_counts.insert("UK".to_string(), count);
     }
 
+    fetching_data.set(false);
     view! { cx,
         div {
             h2 { "Continents" }
@@ -149,7 +156,7 @@ pub async fn Geography<G: Html>(cx: Scope<'_>, url: String) -> View<G> {
 
 async fn fetch_op3(url: String) -> Result<Op3Response, String> {
     let resp = reqwest_wasm::get(
-        format!("https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=100&url=https://op3.dev/e/{url}"),
+        format!("https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=1&url=https://op3.dev/e/{url}"),
     )
     .await
     .map_err(|_| "could not fetch the request")?;
@@ -229,7 +236,11 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
                         on:click=|_| { fetching_data.set(true); },
                         disabled=*fetching_data.get(),
                         ) {
-                        "Fetch data"
+                        (if *fetching_data.get() {
+                            "Loading..."
+                        } else {
+                            "Fetch data"
+                        })
                     }
             }
 
@@ -238,8 +249,10 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
 
     (if *fetching_data.get() {
         view!{cx,
-            Suspense(fallback=view! { cx, "Loading..." }) {
-                Geography(url=url_str.get().to_string())
+            Suspense(fallback=view! { cx,
+                    "Loading..."
+            }) {
+                Geography(url=url_str.get().to_string(), fetching_data=fetching_data)
             }
         }
     } else {
