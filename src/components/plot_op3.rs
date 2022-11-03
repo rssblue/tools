@@ -151,7 +151,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
 
 async fn fetch_op3(url: String) -> Result<Op3Response, String> {
     let resp = reqwest_wasm::get(
-        format!("https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=100&url=https://op3.dev/e/{url}"),
+        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=100&url=https://op3.dev/e/{url}"),
     )
     .await
     .map_err(|_| "could not fetch the request")?;
