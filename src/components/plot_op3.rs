@@ -56,7 +56,9 @@ struct Row {
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Op3Response {
+    #[serde(default)]
     rows: Vec<Row>,
+    message: Option<String>,
 }
 
 fn plot_bars<G: Html>(cx: Scope<'_>, data: &HashMap<String, usize>) -> View<G> {
@@ -154,9 +156,35 @@ async fn fetch_op3(url: String) -> Result<Op3Response, String> {
     .await
     .map_err(|_| "could not fetch the request")?;
 
-    resp.json::<Op3Response>()
+    let status = resp.status();
+    let body = resp
+        .text()
         .await
-        .map_err(|_| "could not deserialize".to_string())
+        .map_err(|_| "could not read OP3 response")?;
+
+    let op3_response = serde_json::from_str::<Op3Response>(&body);
+    let op3_response = match op3_response {
+        Ok(response) => response,
+        Err(_) => {
+            return Err(format!(
+                "could not parse OP3 response:<br><pre><code>{}</code></pre>",
+                body
+            ))
+        }
+    };
+
+    match status {
+        reqwest_wasm::StatusCode::OK => Ok(op3_response),
+        reqwest_wasm::StatusCode::BAD_REQUEST => {
+            let msg = "invalid OP3 API request";
+            if let Some(message) = op3_response.message {
+                Err(format!("{} (“{}”)", msg, message))
+            } else {
+                Err(msg.to_string())
+            }
+        }
+        _ => Err("unknown error".to_string()),
+    }
 }
 
 #[component]
