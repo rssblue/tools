@@ -1,4 +1,5 @@
 use crate::components::utils;
+use itertools::Itertools;
 use serde::Deserialize;
 use std::collections::HashMap;
 use sycamore::prelude::*;
@@ -52,6 +53,8 @@ impl std::hash::Hash for Continent {
 struct Row {
     continent: Continent,
     country: isocountry::CountryCode,
+    #[serde(rename = "hashedIpAddress")]
+    hashed_ip_address: String,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -173,8 +176,15 @@ async fn fetch_op3(url: String) -> Result<Vec<Row>, String> {
         }
     };
 
+    // Filter duplicate IP addresses.
+    let rows = op3_response
+        .rows
+        .into_iter()
+        .unique_by(|row| row.hashed_ip_address.clone())
+        .collect();
+
     match status {
-        reqwest_wasm::StatusCode::OK => Ok(op3_response.rows),
+        reqwest_wasm::StatusCode::OK => Ok(rows),
         reqwest_wasm::StatusCode::BAD_REQUEST => {
             let msg = "invalid OP3 API request";
             if let Some(message) = op3_response.message {
