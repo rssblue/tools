@@ -102,7 +102,7 @@ fn plot_bars<G: Html>(cx: Scope<'_>, data: &HashMap<String, usize>) -> View<G> {
 
 #[component(inline_props)]
 pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
-    let response = match fetch_op3(url).await {
+    let rows = match fetch_op3(url).await {
         Ok(response) => response,
         Err(e) => {
             return view! { cx,
@@ -111,7 +111,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         }
     };
 
-    if response.rows.is_empty() {
+    if rows.is_empty() {
         return view! { cx,
             utils::Warning(warning=format!("No data found for the URL."))
         };
@@ -120,7 +120,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     // Get continent and country counts.
     let mut continent_counts: HashMap<String, usize> = HashMap::new();
     let mut country_counts: HashMap<String, usize> = HashMap::new();
-    for row in response.rows {
+    for row in rows {
         *continent_counts
             .entry(row.continent.to_string())
             .or_insert(0) += 1;
@@ -149,7 +149,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     }
 }
 
-async fn fetch_op3(url: String) -> Result<Op3Response, String> {
+async fn fetch_op3(url: String) -> Result<Vec<Row>, String> {
     let resp = reqwest_wasm::get(
         format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=100&url=https://op3.dev/e/{url}"),
     )
@@ -174,7 +174,7 @@ async fn fetch_op3(url: String) -> Result<Op3Response, String> {
     };
 
     match status {
-        reqwest_wasm::StatusCode::OK => Ok(op3_response),
+        reqwest_wasm::StatusCode::OK => Ok(op3_response.rows),
         reqwest_wasm::StatusCode::BAD_REQUEST => {
             let msg = "invalid OP3 API request";
             if let Some(message) = op3_response.message {
