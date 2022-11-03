@@ -2,7 +2,7 @@ use crate::components::utils;
 use serde::Deserialize;
 use std::collections::HashMap;
 use sycamore::prelude::*;
-use sycamore::suspense::Suspense;
+use sycamore::suspense::{use_transition, Suspense};
 
 #[derive(Debug, Deserialize, Eq, Clone)]
 enum Continent {
@@ -99,15 +99,10 @@ fn plot_bars<G: Html>(cx: Scope<'_>, data: &HashMap<String, usize>) -> View<G> {
 }
 
 #[component(inline_props)]
-pub async fn Geography<'a, G: Html>(
-    cx: Scope<'a>,
-    url: String,
-    fetching_data: &'a Signal<bool>,
-) -> View<G> {
+pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     let response = match fetch_op3(url).await {
         Ok(response) => response,
         Err(e) => {
-            fetching_data.set(false);
             return view! { cx,
                 utils::Warning(warning=format!("Error: {e}"))
             };
@@ -115,7 +110,6 @@ pub async fn Geography<'a, G: Html>(
     };
 
     if response.rows.is_empty() {
-        fetching_data.set(false);
         return view! { cx,
             utils::Warning(warning=format!("No data found for the URL."))
         };
@@ -143,7 +137,6 @@ pub async fn Geography<'a, G: Html>(
         country_counts.insert("UK".to_string(), count);
     }
 
-    fetching_data.set(false);
     view! { cx,
         div {
             h2 { "Continents" }
@@ -156,7 +149,7 @@ pub async fn Geography<'a, G: Html>(
 
 async fn fetch_op3(url: String) -> Result<Op3Response, String> {
     let resp = reqwest_wasm::get(
-        format!("https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=1&url=https://op3.dev/e/{url}"),
+        format!("https://op3.dev/api/1/redirect-logs?start=-24h&format=json&token=preview07ce&limit=100&url=https://op3.dev/e/{url}"),
     )
     .await
     .map_err(|_| "could not fetch the request")?;
@@ -170,13 +163,27 @@ async fn fetch_op3(url: String) -> Result<Op3Response, String> {
 pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     let url_str = create_signal(cx, String::new());
     let fetching_data = create_signal(cx, false);
+    let show_data = create_signal(cx, false);
     let input_cls = create_signal(cx, String::new());
+
+    let transition = use_transition(cx);
+    let update = move |x| transition.start(move || fetching_data.set(x), || ());
 
     create_effect(cx, move || {
         if *fetching_data.get() {
             input_cls.set("bg-gray-100".to_string());
+        } else {
+            input_cls.set("".to_string());
         }
     });
+
+    create_effect(cx, move || {
+        if *fetching_data.get() {
+            show_data.set(true);
+        }
+    });
+
+    create_effect(cx, move || fetching_data.set(transition.is_pending()));
 
     view! { cx,
     h1(class="mb-3") { "Plot OP3" }
@@ -233,7 +240,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
                     button(
                         class=format!("btn-base btn-primary rounded-b-lg md:rounded-r-lg md:rounded-l-none col-span-4 md:col-span-1"),
                         type="button",
-                        on:click=|_| { fetching_data.set(true); },
+                        on:click=move |_| update(true),
                         disabled=*fetching_data.get(),
                         ) {
                         (if *fetching_data.get() {
@@ -247,12 +254,12 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
         }
     }
 
-    (if *fetching_data.get() {
+    (if *show_data.get() {
         view!{cx,
             Suspense(fallback=view! { cx,
                     "Loading..."
             }) {
-                Geography(url=url_str.get().to_string(), fetching_data=fetching_data)
+                Geography(url=url_str.get().to_string())
             }
         }
     } else {
