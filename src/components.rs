@@ -49,10 +49,6 @@ pub fn Index<G: Html>(cx: Scope) -> View<G> {
             class=format!("btn btn-primary"),
             href="/podcast-guid",
             ) { "Podcast GUID" }
-        a(
-            class=format!("btn btn-primary"),
-            href="/plot-op3",
-            ) { "Plot OP3" }
     }
     }
 }
