@@ -49,12 +49,29 @@ impl std::hash::Hash for Continent {
     }
 }
 
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+enum Method {
+    #[serde(rename = "GET")]
+    Get,
+    #[serde(rename = "POST")]
+    Post,
+    #[serde(rename = "PUT")]
+    Put,
+    #[serde(rename = "DELETE")]
+    Delete,
+    #[serde(rename = "HEAD")]
+    Head,
+    #[serde(rename = "PATCH")]
+    Patch,
+}
+
 #[derive(Debug, Deserialize, PartialEq)]
 struct Row {
     continent: Continent,
     country: isocountry::CountryCode,
     #[serde(rename = "hashedIpAddress")]
     hashed_ip_address: String,
+    method: Method,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -176,12 +193,16 @@ async fn fetch_op3(url: String) -> Result<Vec<Row>, String> {
         }
     };
 
+    let mut rows = op3_response.rows;
+
     // Filter duplicate IP addresses.
-    let rows = op3_response
-        .rows
+    rows = rows
         .into_iter()
         .unique_by(|row| row.hashed_ip_address.clone())
         .collect();
+
+    // Only keep GET requests.
+    rows.retain(|row| row.method == Method::Get);
 
     match status {
         reqwest_wasm::StatusCode::OK => Ok(rows),
