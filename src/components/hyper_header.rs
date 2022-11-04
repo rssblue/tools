@@ -1,4 +1,3 @@
-use serde::de::Error;
 use serde::{Deserialize, Deserializer};
 
 /// Copied from https://docs.rs/hyper/0.11.1/src/hyper/header/common/range.rs.html under the terms
@@ -153,7 +152,8 @@ impl<'de> Deserialize<'de> for Range {
 
         match Self::from_str(s.as_str()) {
             Ok(t) => Ok(t),
-            Err(e) => Err(e).map_err(D::Error::custom),
+            // Technically, this should be an error, but we want to deserialize.
+            Err(e) => Ok(Range::Unregistered("".to_owned(), e)),
         }
     }
 }

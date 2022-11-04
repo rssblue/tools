@@ -3,12 +3,12 @@ use crate::components::utils;
 use chrono::{DateTime, Duration, Utc};
 use itertools::Itertools;
 use rand::Rng;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 use sycamore::prelude::*;
 use sycamore::suspense::{use_transition, Suspense};
 
-#[derive(Debug, Deserialize, Eq, Clone)]
+#[derive(Debug, Deserialize, Eq, Clone, Default)]
 enum Continent {
     #[serde(rename = "AF")]
     Africa,
@@ -24,6 +24,8 @@ enum Continent {
     Oceania,
     #[serde(rename = "SA")]
     SouthAmerica,
+    #[default]
+    Unknown,
 }
 
 impl std::fmt::Display for Continent {
@@ -36,6 +38,7 @@ impl std::fmt::Display for Continent {
             Self::NorthAmerica => write!(f, "North America"),
             Self::Oceania => write!(f, "Oceania"),
             Self::SouthAmerica => write!(f, "South America"),
+            Self::Unknown => write!(f, "Unknown continent"),
         }
     }
 }
@@ -68,9 +71,23 @@ enum Method {
     Patch,
 }
 
+pub fn deserialize_option_country<'de, D>(
+    deserializer: D,
+) -> Result<Option<isocountry::CountryCode>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match isocountry::CountryCode::deserialize(deserializer) {
+        Ok(s) => Ok(Some(s)),
+        Err(_) => Ok(None),
+    }
+}
+
 #[derive(Debug, Deserialize, PartialEq)]
 struct Row {
+    #[serde(default)]
     continent: Option<Continent>,
+    #[serde(default, deserialize_with = "deserialize_option_country")]
     country: Option<isocountry::CountryCode>,
     #[serde(rename = "hashedIpAddress")]
     hashed_ip_address: String,
@@ -219,9 +236,9 @@ async fn fetch_op3(
 
 #[component(inline_props)]
 pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
-    let start_time = Utc::now() - chrono::Duration::hours(24);
+    let start_time = Utc::now() - chrono::Duration::days(7);
     let end_time = Utc::now();
-    let periods = random_periods(24, start_time, end_time);
+    let periods = random_periods(100, chrono::Duration::minutes(100), start_time, end_time);
 
     // Fetch OP3 for each period concurrently and combine.
     let results = futures::future::join_all(periods.iter().map(|(start, end)| {
@@ -407,12 +424,12 @@ fn random_weights(n: usize) -> Vec<f64> {
 // Generate n non-overlapping periods.
 fn random_periods(
     num_periods: usize,
+    one_period_duration: Duration,
     start_time: DateTime<Utc>,
     end_time: DateTime<Utc>,
 ) -> Vec<(DateTime<Utc>, DateTime<Utc>)> {
     let total_duration = end_time - start_time;
 
-    let one_period_duration = Duration::minutes(60);
     let all_period_durations = one_period_duration * num_periods as i32;
 
     let num_gaps = num_periods + 1;
@@ -452,6 +469,7 @@ mod tests {
         assert_eq!(
             random_periods(
                 1,
+                Duration::minutes(5),
                 Utc.ymd(2020, 1, 1).and_hms(0, 0, 0),
                 Utc.ymd(2020, 1, 1).and_hms(0, 5, 0)
             ),
@@ -463,6 +481,7 @@ mod tests {
         assert_eq!(
             random_periods(
                 3,
+                Duration::minutes(5),
                 Utc.ymd(2020, 1, 1).and_hms(0, 0, 0),
                 Utc.ymd(2020, 1, 1).and_hms(0, 15, 0)
             ),
