@@ -242,9 +242,14 @@ fn filter_rows(rows: Vec<Row>) -> Vec<Row> {
 
 #[component(inline_props)]
 pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
-    let start_time = Utc::now() - chrono::Duration::days(7);
+    let NUM_DAYS = 7;
+    let PERIOD_NUM_MINUTES = 10;
+    let NUM_PERIODS = 100;
+
+    let start_time = Utc::now() - Duration::days(NUM_DAYS);
     let end_time = Utc::now();
-    let periods = random_periods(100, chrono::Duration::minutes(5), start_time, end_time);
+    let period_duration = Duration::minutes(PERIOD_NUM_MINUTES);
+    let periods = random_periods(NUM_PERIODS, period_duration, start_time, end_time);
 
     // Fetch OP3 for each period concurrently and combine.
     let results = futures::future::join_all(periods.iter().map(|(start, end)| {
@@ -300,7 +305,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     view! { cx,
     div(class="my-4") {
         utils::Info(
-            info=format!( "Below you can find data from 100 randomly sampled 5-minute blocks over the last 7 days.<br><br>Data are from <strong>{} file requests</strong> ({} have been filtered out). This is indicative of but not equivalent to the total number of downloads because we are using random sampling and there are limits on how many requests are returned by OP3.", num_filtered_rows, num_original_rows-num_filtered_rows )
+            info=format!("Below you can find data from {} randomly sampled {}-minute blocks over the last {} days.<br><br>Data are from <strong>{} file requests</strong> ({} have been filtered out). This is indicative of but not equivalent to the total number of downloads because we are using random sampling and there are limits on how many requests are returned by OP3.", NUM_PERIODS, PERIOD_NUM_MINUTES, NUM_DAYS, num_filtered_rows, num_original_rows-num_filtered_rows )
             )
     }
 
