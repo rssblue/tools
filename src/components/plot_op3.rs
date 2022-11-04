@@ -447,9 +447,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
 
     (if *show_data.get() {
         view!{cx,
-            Suspense(fallback=view! { cx,
-                    "Loading..."
-            }) {
+            Suspense(fallback=view! { cx, }) {
                 Geography(url=url_str.get().to_string())
             }
         }
