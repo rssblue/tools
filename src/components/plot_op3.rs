@@ -318,7 +318,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         }
     }
 
-    // Use country abbreviations.
+    // Improve country display names.
     if let Some(count) = country_counts.remove("United States of America") {
         country_counts.insert("USA".to_string(), count);
     }
@@ -341,6 +341,21 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     }
     if let Some(count) = country_counts.remove("Iran (Islamic Republic of)") {
         country_counts.insert("Iran".to_string(), count);
+    }
+    if let Some(count) = country_counts.remove("Boliivia (Plurinational State of)") {
+        country_counts.insert("Bolivia".to_string(), count);
+    }
+    if let Some(count) = country_counts.remove("Tanania, United Republic of") {
+        country_counts.insert("Tanzania".to_string(), count);
+    }
+    if let Some(count) = country_counts.remove("Virgin Islands (U.S.)") {
+        country_counts.insert("Virgin Islands (USA)".to_string(), count);
+    }
+    if let Some(count) = country_counts.remove("Taiwan, Province of China") {
+        country_counts.insert("Taiwan".to_string(), count);
+    }
+    if let Some(count) = country_counts.remove("United Arab Emirates") {
+        country_counts.insert("UAE".to_string(), count);
     }
 
     let info: View<G> = View::new_fragment(vec![view! {cx,
