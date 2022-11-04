@@ -318,7 +318,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     }
 
     view! { cx,
-    div(class="my-4") {
+    div(class="my-6") {
         utils::Info(
             info=format!("Below you can find data from {} randomly sampled {}-minute blocks over the last {} days.<br><br>Data are from <strong>{} file requests</strong> ({} have been filtered out). These are indicative of but not equivalent to the total number of downloads because we are using <em>random</em> sampling and there are limits on how many requests are returned by OP3.", NUM_PERIODS, PERIOD_NUM_MINUTES, NUM_DAYS, num_filtered_rows, num_original_rows-num_filtered_rows )
             )
