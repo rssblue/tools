@@ -112,22 +112,35 @@ fn plot_bars<G: Html>(cx: Scope<'_>, data: &HashMap<String, usize>) -> View<G> {
 
     let num_points = data.len();
 
-    let max_count = match data.iter().map(|(_, count)| count).max() {
-        Some(max) => *max,
-        None => 1,
-    };
+    // Get percentages.
+    let total: usize = data.iter().map(|(_, v)| v).sum();
+    let data: Vec<(String, f64)> = data
+        .iter()
+        .map(|(k, v)| (k.clone(), 100.0 * *v as f64 / total as f64))
+        .collect();
+
+    // Get max percentage without unwrap.
+    let max_percent = data
+        .iter()
+        .map(|(_, v)| v)
+        .fold(0.0, |acc, v| if *v > acc { *v } else { acc });
 
     let views: View<G> = View::new_fragment(
         data.into_iter()
-            .map(|(name, count)| {
+            .map(|(name, percent)| {
                 view! { cx, tr {
-                    th(scope="row") { (name) }
-                    td(style=format!("--size: calc( {count} / {max_count} )")) {
-                        span(class="data") {
-                            (count)
-                        }
+                th(scope="row") { (name) }
+                td(style=format!("--size: {}", percent/max_percent)) {
+                    span(class="data") {
+                       (if percent >= 5.0 {
+                           // format as integer
+                           format!("{:.0}%", percent)
+                       } else {
+                           "".to_string()
+                       })
                     }
                 } }
+                }
             })
             .collect(),
     );
@@ -305,7 +318,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     view! { cx,
     div(class="my-4") {
         utils::Info(
-            info=format!("Below you can find data from {} randomly sampled {}-minute blocks over the last {} days.<br><br>Data are from <strong>{} file requests</strong> ({} have been filtered out). This is indicative of but not equivalent to the total number of downloads because we are using random sampling and there are limits on how many requests are returned by OP3.", NUM_PERIODS, PERIOD_NUM_MINUTES, NUM_DAYS, num_filtered_rows, num_original_rows-num_filtered_rows )
+            info=format!("Below you can find data from {} randomly sampled {}-minute blocks over the last {} days.<br><br>Data are from <strong>{} file requests</strong> ({} have been filtered out). These are indicative of but not equivalent to the total number of downloads because we are using <em>random</em> sampling and there are limits on how many requests are returned by OP3.", NUM_PERIODS, PERIOD_NUM_MINUTES, NUM_DAYS, num_filtered_rows, num_original_rows-num_filtered_rows )
             )
     }
 
