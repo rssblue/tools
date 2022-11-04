@@ -260,7 +260,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     let url = format!("https://op3.dev/e{}", url);
     let mut url = match url::Url::parse(url.as_str()) {
         Ok(url) => url,
-        Err(e) => {
+        Err(_) => {
             return view! {cx,
             utils::Warning(warning=format!("Could not parse the URL."))
             }
