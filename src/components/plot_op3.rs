@@ -132,7 +132,7 @@ fn plot_bars<G: Html>(cx: Scope<'_>, data: &HashMap<String, usize>) -> View<G> {
             .map(|(name, percent)| {
                 view! { cx, tr {
                 th(scope="row") { (name) }
-                td(style=format!("--size: {}", percent/max_percent)) {
+                td(title=format!("{:.0}%", percent), style=format!("--size: {}", percent/max_percent)) {
                     span(class="data") {
                        (if percent >= 5.0 {
                            // format as integer
