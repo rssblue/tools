@@ -19,8 +19,28 @@ pub fn Warning<G: Html>(cx: Scope, warning: String) -> View<G> {
     }
 }
 
+#[component(inline_props)]
+pub fn Info<G: Html>(cx: Scope, info: String) -> View<G> {
+    let icon = Icon::Info
+        .to_string()
+        .replace("{{ class }}", "inline flex-shrink-0 mr-3 w-6 h-6 stroke-2");
+
+    view! {cx,
+    div(
+        class="flex items-center alert alert-info",
+        role="alert",
+        ) {
+        span(
+            dangerously_set_inner_html=icon.as_str(),
+            ){}
+        span(dangerously_set_inner_html=info.as_str()){}
+    }
+    }
+}
+
 enum Icon {
     AlertCircle,
+    Info,
 }
 
 impl std::fmt::Display for Icon {
@@ -29,6 +49,7 @@ impl std::fmt::Display for Icon {
             Self::AlertCircle => {
                 include_str!("../../assets/svg/feather-icons/alert-circle.svg")
             }
+            Self::Info => include_str!("../../assets/svg/feather-icons/info.svg"),
         };
         write!(f, "{svg}")
     }

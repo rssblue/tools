@@ -81,6 +81,10 @@
     @apply bg-yellow-50 text-yellow-800;
   }
 
+  .alert-info {
+    @apply bg-blue-50 text-blue-700;
+  }
+
   .link {
     @apply underline decoration-blue-500 hover:decoration-transparent hover:text-blue-500 underline-offset-1;
   }

@@ -147,7 +147,7 @@ async fn fetch_op3(
     end_time: DateTime<Utc>,
 ) -> Result<Vec<Row>, String> {
     let resp = reqwest_wasm::get(
-        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=1000&url=https://op3.dev/e/{}&start={}&end={}",
+        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=250&url=https://op3.dev/e/{}&start={}&end={}",
             url,
             start_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
             end_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
@@ -175,7 +175,24 @@ async fn fetch_op3(
         }
     };
 
-    let mut rows = op3_response.rows;
+    let rows = op3_response.rows;
+
+    match status {
+        reqwest_wasm::StatusCode::OK => Ok(rows),
+        reqwest_wasm::StatusCode::BAD_REQUEST => {
+            let msg = "invalid OP3 API request";
+            if let Some(message) = op3_response.message {
+                Err(format!("{} (“{}”)", msg, message))
+            } else {
+                Err(msg.to_string())
+            }
+        }
+        _ => Err("unknown error".to_string()),
+    }
+}
+
+fn filter_rows(rows: Vec<Row>) -> Vec<Row> {
+    let mut rows = rows;
 
     // Only keep GET requests.
     rows.retain(|row| row.method == Method::Get);
@@ -220,25 +237,14 @@ async fn fetch_op3(
         .unique_by(|row| row.hashed_ip_address.clone())
         .collect();
 
-    match status {
-        reqwest_wasm::StatusCode::OK => Ok(rows),
-        reqwest_wasm::StatusCode::BAD_REQUEST => {
-            let msg = "invalid OP3 API request";
-            if let Some(message) = op3_response.message {
-                Err(format!("{} (“{}”)", msg, message))
-            } else {
-                Err(msg.to_string())
-            }
-        }
-        _ => Err("unknown error".to_string()),
-    }
+    rows
 }
 
 #[component(inline_props)]
 pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     let start_time = Utc::now() - chrono::Duration::days(7);
     let end_time = Utc::now();
-    let periods = random_periods(100, chrono::Duration::minutes(100), start_time, end_time);
+    let periods = random_periods(100, chrono::Duration::minutes(5), start_time, end_time);
 
     // Fetch OP3 for each period concurrently and combine.
     let results = futures::future::join_all(periods.iter().map(|(start, end)| {
@@ -258,6 +264,10 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
             }
         }
     }
+
+    let num_original_rows = rows.len();
+    rows = filter_rows(rows);
+    let num_filtered_rows = rows.len();
 
     if rows.is_empty() {
         return view! { cx,
@@ -288,12 +298,16 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     }
 
     view! { cx,
-        div {
-            h2 { "Continents" }
-            (plot_bars(cx, &continent_counts))
-            h2 { "Countries" }
-            (plot_bars(cx, &country_counts))
-        }
+    div(class="my-4") {
+        utils::Info(
+            info=format!( "Below you can find data from 100 randomly sampled 5-minute blocks over the last 7 days.<br><br>Data are from <strong>{} file requests</strong> ({} have been filtered out). This is indicative of but not equivalent to the total number of downloads because we are using random sampling and there are limits on how many requests are returned by OP3.", num_filtered_rows, num_original_rows-num_filtered_rows )
+            )
+    }
+
+    h2 { "Continents" }
+    (plot_bars(cx, &continent_counts))
+        h2 { "Countries" }
+    (plot_bars(cx, &country_counts))
     }
 }
 
