@@ -135,22 +135,6 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         }
     };
 
-    // let views: View<G> = View::new_fragment(
-    //     rows.into_iter()
-    //         .map(|row| {
-    //             if let Some(r) = row.range {
-    //                 view! { cx, (format!("{:?}", r)) }
-    //             } else {
-    //                 view! { cx,  }
-    //             }
-    //         })
-    //         .collect(),
-    // );
-
-    // view! {cx,
-    // (views)
-    // }
-
     if rows.is_empty() {
         return view! { cx,
             utils::Warning(warning=format!("No data found for the URL."))
