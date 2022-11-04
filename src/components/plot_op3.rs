@@ -162,7 +162,7 @@ async fn fetch_op3(
     end_time: DateTime<Utc>,
 ) -> Result<Vec<Row>, String> {
     let resp = reqwest_wasm::get(
-        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=250&url=https://op3.dev/e/{}&start={}&end={}&_from=rssblue-plot-op3",
+        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=250&url=https://op3.dev/e{}&start={}&end={}&_from=rssblue-plot-op3",
             url,
             start_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
             end_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
@@ -435,7 +435,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
                     class="block w-full border border-gray-300 pl-3 pr-1 rounded-tl-lg md:rounded-l-lg w-auto flex items-center bg-gray-100 text-gray-800",
                     disabled=true,
                     ) {
-                    "https://op3.dev/e/"
+                    "https://op3.dev/e"
                 }
                 input(
                     class=format!("input-text-base rounded-tr-lg md:rounded-none md:rounded-r-none pl-1 text-ellipsis {}", input_cls.get()),
