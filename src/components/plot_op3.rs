@@ -454,7 +454,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
                     autofocus=true,
                     type="url",
                     id="url",
-                    placeholder="example.com/episode.mp3",
+                    placeholder="/example.com/episode.mp3",
                     autocomplete="off",
                     disabled=*fetching_data.get(),
                     bind:value=url_str,
