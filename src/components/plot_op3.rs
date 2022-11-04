@@ -349,7 +349,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         br {}
         br {}
 
-        "Data are from " strong{ (num_filtered_rows) " file requests" } " (" (num_original_rows-num_filtered_rows) " have been filtered out). These are indicative of but not equivalent to the total number of downloads because we are using " em { "random" } " sampling and there are limits on how many requests are returned by OP3."
+        "Data are from " strong{ (num_filtered_rows) " file requests" } " (" (num_original_rows-num_filtered_rows) " have been filtered out). These are indicative of but not equivalent to the total number of downloads because we are randomly sampling only a fraction of all requests, and there are also limits on how many requests are returned by OP3."
 
         br {}
         br {}
