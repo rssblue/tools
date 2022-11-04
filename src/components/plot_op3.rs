@@ -316,6 +316,21 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     {
         country_counts.insert("UK".to_string(), count);
     }
+    if let Some(count) = country_counts.remove("Russian Federation") {
+        country_counts.insert("Russia".to_string(), count);
+    }
+    if let Some(count) = country_counts.remove("Moldova (Republic of)") {
+        country_counts.insert("Moldova".to_string(), count);
+    }
+    if let Some(count) = country_counts.remove("Korea (Republic of)") {
+        country_counts.insert("South Korea".to_string(), count);
+    }
+    if let Some(count) = country_counts.remove("Venezuela (Bolivarian Republic of)") {
+        country_counts.insert("Venezuela".to_string(), count);
+    }
+    if let Some(count) = country_counts.remove("Iran (Islamic Republic of)") {
+        country_counts.insert("Iran".to_string(), count);
+    }
 
     view! { cx,
     div(class="my-6") {
