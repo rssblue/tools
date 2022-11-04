@@ -21,6 +21,7 @@ console_log = "0.2.0"
 log = "0.4.17"
 itertools = "0.10.5"
 rand = "0.8.5"
+futures = "0.3.25"
 
 [profile.release]
 panic = "abort"

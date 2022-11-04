@@ -70,8 +70,8 @@ enum Method {
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Row {
-    continent: Continent,
-    country: isocountry::CountryCode,
+    continent: Option<Continent>,
+    country: Option<isocountry::CountryCode>,
     #[serde(rename = "hashedIpAddress")]
     hashed_ip_address: String,
     method: Method,
@@ -124,58 +124,17 @@ fn plot_bars<G: Html>(cx: Scope<'_>, data: &HashMap<String, usize>) -> View<G> {
     }
 }
 
-#[component(inline_props)]
-pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
-    let rows = match fetch_op3(url).await {
-        Ok(response) => response,
-        Err(e) => {
-            return view! { cx,
-                utils::Warning(warning=format!("Error: {e}"))
-            };
-        }
-    };
-
-    if rows.is_empty() {
-        return view! { cx,
-            utils::Warning(warning=format!("No data found for the URL."))
-        };
-    }
-
-    // Get continent and country counts.
-    let mut continent_counts: HashMap<String, usize> = HashMap::new();
-    let mut country_counts: HashMap<String, usize> = HashMap::new();
-    for row in rows {
-        *continent_counts
-            .entry(row.continent.to_string())
-            .or_insert(0) += 1;
-        *country_counts
-            .entry(row.country.name().to_string())
-            .or_insert(0) += 1;
-    }
-
-    // Use country abbreviations.
-    if let Some(count) = country_counts.remove("United States of America") {
-        country_counts.insert("USA".to_string(), count);
-    }
-    if let Some(count) =
-        country_counts.remove("United Kingdom of Great Britain and Northern Ireland")
-    {
-        country_counts.insert("UK".to_string(), count);
-    }
-
-    view! { cx,
-        div {
-            h2 { "Continents" }
-            (plot_bars(cx, &continent_counts))
-            h2 { "Countries" }
-            (plot_bars(cx, &country_counts))
-        }
-    }
-}
-
-async fn fetch_op3(url: String) -> Result<Vec<Row>, String> {
+async fn fetch_op3(
+    url: String,
+    start_time: DateTime<Utc>,
+    end_time: DateTime<Utc>,
+) -> Result<Vec<Row>, String> {
     let resp = reqwest_wasm::get(
-        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=1000&url=https://op3.dev/e/{url}"),
+        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=1000&url=https://op3.dev/e/{}&start={}&end={}",
+            url,
+            start_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+            end_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+                ),
     )
     .await
     .map_err(|_| "could not fetch the request")?;
@@ -189,10 +148,12 @@ async fn fetch_op3(url: String) -> Result<Vec<Row>, String> {
     let op3_response = serde_json::from_str::<Op3Response>(&body);
     let op3_response = match op3_response {
         Ok(response) => response,
-        Err(_) => {
+        Err(e) => {
             return Err(format!(
-                "could not parse OP3 response:<br><pre><code>{}</code></pre>",
-                body
+                "could not parse OP3 response: “{e}”<br><details>
+    <summary>OP3 response</summary>
+    <pre><code>{body}</code></pre>
+</details>"
             ))
         }
     };
@@ -253,6 +214,69 @@ async fn fetch_op3(url: String) -> Result<Vec<Row>, String> {
             }
         }
         _ => Err("unknown error".to_string()),
+    }
+}
+
+#[component(inline_props)]
+pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
+    let start_time = Utc::now() - chrono::Duration::hours(24);
+    let end_time = Utc::now();
+    let periods = random_periods(24, start_time, end_time);
+
+    // Fetch OP3 for each period concurrently and combine.
+    let results = futures::future::join_all(periods.iter().map(|(start, end)| {
+        let url = url.clone();
+        async move { fetch_op3(url, *start, *end).await }
+    }))
+    .await;
+    let mut rows = Vec::new();
+    for result in results {
+        match result {
+            Ok(rows_) => rows.extend(rows_),
+            Err(e) => {
+                return view! {cx,
+                utils::Warning(warning=format!("Error: {e}"))
+
+                };
+            }
+        }
+    }
+
+    if rows.is_empty() {
+        return view! { cx,
+            utils::Warning(warning=format!("No data found for the URL."))
+        };
+    }
+
+    // Get continent and country counts.
+    let mut continent_counts: HashMap<String, usize> = HashMap::new();
+    let mut country_counts: HashMap<String, usize> = HashMap::new();
+    for row in rows {
+        if let Some(continent) = row.continent {
+            *continent_counts.entry(continent.to_string()).or_insert(0) += 1;
+        }
+        if let Some(country) = row.country {
+            *country_counts.entry(country.to_string()).or_insert(0) += 1;
+        }
+    }
+
+    // Use country abbreviations.
+    if let Some(count) = country_counts.remove("United States of America") {
+        country_counts.insert("USA".to_string(), count);
+    }
+    if let Some(count) =
+        country_counts.remove("United Kingdom of Great Britain and Northern Ireland")
+    {
+        country_counts.insert("UK".to_string(), count);
+    }
+
+    view! { cx,
+        div {
+            h2 { "Continents" }
+            (plot_bars(cx, &continent_counts))
+            h2 { "Countries" }
+            (plot_bars(cx, &country_counts))
+        }
     }
 }
 
@@ -388,7 +412,7 @@ fn random_periods(
 ) -> Vec<(DateTime<Utc>, DateTime<Utc>)> {
     let total_duration = end_time - start_time;
 
-    let one_period_duration = Duration::minutes(5);
+    let one_period_duration = Duration::minutes(60);
     let all_period_durations = one_period_duration * num_periods as i32;
 
     let num_gaps = num_periods + 1;
