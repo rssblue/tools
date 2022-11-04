@@ -162,7 +162,7 @@ async fn fetch_op3(
     end_time: DateTime<Utc>,
 ) -> Result<Vec<Row>, String> {
     let resp = reqwest_wasm::get(
-        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=250&url=https://op3.dev/e{}&start={}&end={}&_from=rssblue-plot-op3",
+        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=250&url={}&start={}&end={}&_from=rssblue-plot-op3",
             url,
             start_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
             end_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
@@ -257,6 +257,17 @@ fn filter_rows(rows: Vec<Row>) -> Vec<Row> {
 
 #[component(inline_props)]
 pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
+    let url = format!("https://op3.dev/e{}", url);
+    let mut url = match url::Url::parse(url.as_str()) {
+        Ok(url) => url,
+        Err(e) => {
+            return view! {cx,
+            utils::Warning(warning=format!("Could not parse the URL."))
+            }
+        }
+    };
+    url.set_query(None);
+
     let NUM_DAYS = 7;
     let PERIOD_NUM_MINUTES = 30;
     let NUM_PERIODS = 100;
@@ -269,7 +280,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     // Fetch OP3 for each period concurrently and combine.
     let results = futures::future::join_all(periods.iter().map(|(start, end)| {
         let url = url.clone();
-        async move { fetch_op3(url, *start, *end).await }
+        async move { fetch_op3(url.to_string(), *start, *end).await }
     }))
     .await;
     let mut rows = Vec::new();
