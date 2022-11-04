@@ -160,12 +160,6 @@ async fn fetch_op3(
 
     let mut rows = op3_response.rows;
 
-    // Filter duplicate IP addresses.
-    rows = rows
-        .into_iter()
-        .unique_by(|row| row.hashed_ip_address.clone())
-        .collect();
-
     // Only keep GET requests.
     rows.retain(|row| row.method == Method::Get);
 
@@ -202,6 +196,12 @@ async fn fetch_op3(
         },
         None => true,
     });
+
+    // Filter duplicate IP addresses.
+    rows = rows
+        .into_iter()
+        .unique_by(|row| row.hashed_ip_address.clone())
+        .collect();
 
     match status {
         reqwest_wasm::StatusCode::OK => Ok(rows),
