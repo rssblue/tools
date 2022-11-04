@@ -36,6 +36,7 @@ dependencies = [
  "log",
  "ndarray",
  "ndarray-stats",
+ "rand",
  "reqwest-wasm",
  "serde",
  "serde_json",

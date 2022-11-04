@@ -1,6 +1,8 @@
 use crate::components::hyper_header::{ByteRangeSpec, Range};
 use crate::components::utils;
+use chrono::{DateTime, Duration, Utc};
 use itertools::Itertools;
+use rand::Rng;
 use serde::Deserialize;
 use std::collections::HashMap;
 use sycamore::prelude::*;
@@ -382,5 +384,94 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
             }
     })
 
+    }
+}
+
+// Generate n random numbers that add up to 1.
+fn random_weights(n: usize) -> Vec<f64> {
+    let mut rng = rand::thread_rng();
+    let mut weights: Vec<f64> = (0..n).map(|_| rng.gen::<f64>()).collect();
+    let sum: f64 = weights.iter().sum();
+    weights.iter_mut().for_each(|x| *x /= sum);
+    weights
+}
+
+// Generate n non-overlapping periods.
+fn random_periods(
+    num_periods: usize,
+    start_time: DateTime<Utc>,
+    end_time: DateTime<Utc>,
+) -> Vec<(DateTime<Utc>, DateTime<Utc>)> {
+    let total_duration = end_time - start_time;
+
+    let one_period_duration = Duration::minutes(5);
+    let all_period_durations = one_period_duration * num_periods as i32;
+
+    let num_gaps = num_periods + 1;
+    let all_gap_durations = total_duration - all_period_durations;
+    let avg_gap_duration = all_gap_durations / num_gaps as i32;
+
+    // Generate gap durations.
+    let weights = random_weights(num_gaps);
+    let gap_durations = weights
+        .iter()
+        .map(|x| {
+            chrono::Duration::milliseconds((x * avg_gap_duration.num_milliseconds() as f64) as i64)
+        })
+        .collect::<Vec<Duration>>();
+
+    // Generate period intervals.
+    let mut periods: Vec<(DateTime<Utc>, DateTime<Utc>)> = Vec::new();
+    let mut start = start_time;
+    for gap_duration in gap_durations[..num_periods].iter() {
+        start += *gap_duration;
+        let end = start + one_period_duration;
+        periods.push((start, end));
+        start = end;
+    }
+
+    periods
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::prelude::*;
+
+    #[test]
+    fn test_random_periods() {
+        // If no space left for gaps, then periods just span the whole duration.
+        assert_eq!(
+            random_periods(
+                1,
+                Utc.ymd(2020, 1, 1).and_hms(0, 0, 0),
+                Utc.ymd(2020, 1, 1).and_hms(0, 5, 0)
+            ),
+            vec![(
+                Utc.ymd(2020, 1, 1).and_hms(0, 0, 0),
+                Utc.ymd(2020, 1, 1).and_hms(0, 5, 0)
+            )]
+        );
+        assert_eq!(
+            random_periods(
+                3,
+                Utc.ymd(2020, 1, 1).and_hms(0, 0, 0),
+                Utc.ymd(2020, 1, 1).and_hms(0, 15, 0)
+            ),
+            vec![
+                (
+                    Utc.ymd(2020, 1, 1).and_hms(0, 0, 0),
+                    Utc.ymd(2020, 1, 1).and_hms(0, 5, 0)
+                ),
+                (
+                    Utc.ymd(2020, 1, 1).and_hms(0, 5, 0),
+                    Utc.ymd(2020, 1, 1).and_hms(0, 10, 0)
+                ),
+                (
+                    Utc.ymd(2020, 1, 1).and_hms(0, 10, 0),
+                    Utc.ymd(2020, 1, 1).and_hms(0, 15, 0)
+                )
+            ]
+        );
     }
 }
