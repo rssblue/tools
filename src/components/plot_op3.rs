@@ -256,7 +256,7 @@ fn filter_rows(rows: Vec<Row>) -> Vec<Row> {
 #[component(inline_props)]
 pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     let NUM_DAYS = 7;
-    let PERIOD_NUM_MINUTES = 10;
+    let PERIOD_NUM_MINUTES = 30;
     let NUM_PERIODS = 100;
 
     let start_time = Utc::now() - Duration::days(NUM_DAYS);
