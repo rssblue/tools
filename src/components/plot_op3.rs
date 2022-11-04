@@ -162,7 +162,7 @@ async fn fetch_op3(
     end_time: DateTime<Utc>,
 ) -> Result<Vec<Row>, String> {
     let resp = reqwest_wasm::get(
-        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=250&url=https://op3.dev/e/{}&start={}&end={}",
+        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=250&url=https://op3.dev/e/{}&start={}&end={}&_from=rssblue-plot-op3",
             url,
             start_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
             end_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
