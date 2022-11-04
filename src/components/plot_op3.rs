@@ -69,6 +69,8 @@ enum Method {
     Head,
     #[serde(rename = "PATCH")]
     Patch,
+    #[serde(rename = "OPTIONS")]
+    Options,
 }
 
 pub fn deserialize_option_country<'de, D>(
