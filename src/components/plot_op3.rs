@@ -271,7 +271,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
 
     if rows.is_empty() {
         return view! { cx,
-            utils::Warning(warning=format!("No data found for the URL."))
+            utils::Warning(warning=format!("No data found for the URL. {periods:?}"))
         };
     }
 
@@ -448,25 +448,23 @@ fn random_periods(
 
     let num_gaps = num_periods + 1;
     let all_gap_durations = total_duration - all_period_durations;
-    let avg_gap_duration = all_gap_durations / num_gaps as i32;
 
     // Generate gap durations.
     let weights = random_weights(num_gaps);
     let gap_durations = weights
         .iter()
         .map(|x| {
-            chrono::Duration::milliseconds((x * avg_gap_duration.num_milliseconds() as f64) as i64)
+            chrono::Duration::milliseconds((x * all_gap_durations.num_milliseconds() as f64) as i64)
         })
         .collect::<Vec<Duration>>();
 
     // Generate period intervals.
     let mut periods: Vec<(DateTime<Utc>, DateTime<Utc>)> = Vec::new();
-    let mut start = start_time;
-    for gap_duration in gap_durations[..num_periods].iter() {
-        start += *gap_duration;
+    let mut start = start_time + gap_durations[0];
+    for gap_duration in gap_durations[1..].iter() {
         let end = start + one_period_duration;
         periods.push((start, end));
-        start = end;
+        start = end + *gap_duration;
     }
 
     periods
