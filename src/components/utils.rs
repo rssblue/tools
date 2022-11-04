@@ -20,7 +20,7 @@ pub fn Warning<G: Html>(cx: Scope, warning: String) -> View<G> {
 }
 
 #[component(inline_props)]
-pub fn Info<G: Html>(cx: Scope, info: String) -> View<G> {
+pub fn Info<G: Html>(cx: Scope, info: View<G>) -> View<G> {
     let icon = Icon::Info
         .to_string()
         .replace("{{ class }}", "inline flex-shrink-0 mr-3 w-6 h-6 stroke-2");
@@ -33,7 +33,9 @@ pub fn Info<G: Html>(cx: Scope, info: String) -> View<G> {
         span(
             dangerously_set_inner_html=icon.as_str(),
             ){}
-        span(dangerously_set_inner_html=info.as_str()){}
+        div {
+            (info)
+        }
     }
     }
 }

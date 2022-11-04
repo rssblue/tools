@@ -332,11 +332,32 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         country_counts.insert("Iran".to_string(), count);
     }
 
+    let info: View<G> = View::new_fragment(vec![view! {cx,
+        "Below you can find data from " (NUM_PERIODS) " randomly sampled " (PERIOD_NUM_MINUTES)"-minute blocks over the last " (NUM_DAYS) " days."
+
+        br {}
+        br {}
+
+        "Data are from " strong{ (num_filtered_rows) " file requests" } " (" (num_original_rows-num_filtered_rows) " have been filtered out). These are indicative of but not equivalent to the total number of downloads because we are using " em { "random" } " sampling and there are limits on how many requests are returned by OP3."
+
+        br {}
+        br {}
+
+        details {
+            summary {
+                "Filtering methodology"
+            }
+            ul {
+                li { "Only GET requests are kept." }
+                li { "For partial requests, only those that are at least 1 MB and start at byte 0 are kept." }
+                li { "Only requests with unique (hashed) IP addresses are kept." }
+            }
+        }
+    }]);
+
     view! { cx,
     div(class="my-6") {
-        utils::Info(
-            info=format!("Below you can find data from {} randomly sampled {}-minute blocks over the last {} days.<br><br>Data are from <strong>{} file requests</strong> ({} have been filtered out). These are indicative of but not equivalent to the total number of downloads because we are using <em>random</em> sampling and there are limits on how many requests are returned by OP3.", NUM_PERIODS, PERIOD_NUM_MINUTES, NUM_DAYS, num_filtered_rows, num_original_rows-num_filtered_rows )
-            )
+        utils::Info(info=info)
     }
 
     h2 { "Continents" }
