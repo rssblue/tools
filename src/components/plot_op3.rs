@@ -443,9 +443,9 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     create_effect(cx, move || fetching_data.set(transition.is_pending()));
 
     view! { cx,
-    h1(class="mb-3") { "Plot OP3 🚧" }
+    h1(class="mb-3") { "Plot OP3" }
     h2(class="mt-3 text-gray-500") { "Visualize requests for a podcast media file." }
-    p(class="my-7") {
+    p(class="mt-7") {
             a(
                 class="link",
                 href="https://op3.dev",
@@ -464,9 +464,18 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
         "!"
     }
 
-    div(class="my-4") {
-        utils::Warning(warning="This tool is being actively developed and is not yet ready for production; however, any feedback is welcome! <a href='https://github.com/rssblue/tools/issues' class='link' target='_blank' rel='noopenener'>Let us know</a> what kinds of data you would like to see visualized.".to_string())
+    p(class="mb-7") {
+        "This tool allows to visualize the countries of origin for your typical listeners. It is being actively developed an we welcome all feedback! "
+            a(
+                class="link",
+                href="https://github.com/rssblue/tools/issues",
+                target="_blank",
+                rel="noopener",
+                title="Opens in a new tab",
+                ) { "Let us know" }
+        " what kinds of data you would like to see visualized."
     }
+
     (if op3_url_wrong_url {
         view!{ cx,
         div(class="my-4") {
