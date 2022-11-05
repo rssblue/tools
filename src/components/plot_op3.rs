@@ -8,6 +8,8 @@ use std::collections::HashMap;
 use sycamore::prelude::*;
 use sycamore::suspense::{use_transition, Suspense};
 
+const OP3_PREFIX: &str = "https://op3.dev/e";
+
 #[derive(Debug, Deserialize, Eq, Clone, Default)]
 enum Continent {
     #[serde(rename = "AF")]
@@ -395,7 +397,28 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
 
 #[component]
 pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
+    let mut op3_url = String::new();
+    // Get 'op3-url' query parameter.
+    if let Some(window) = web_sys::window() {
+        if let Ok(href) = window.location().href() {
+            if let Ok(url) = web_sys::Url::new(&href) {
+                if let Some(param) = url.search_params().get("op3-url") {
+                    op3_url = param;
+                }
+            }
+        }
+    }
+    // Check if URL start with correct prefix.
+    let op3_url_wrong_url = !op3_url.is_empty() && !op3_url.starts_with(OP3_PREFIX);
+
     let url_str = create_signal(cx, String::new());
+    if !op3_url_wrong_url {
+        // Strip prefix from URL.
+        if let Some(url) = op3_url.strip_prefix(OP3_PREFIX) {
+            url_str.set(url.to_string());
+        }
+    }
+
     let fetching_data = create_signal(cx, false);
     let show_data = create_signal(cx, false);
     let input_cls = create_signal(cx, String::new());
@@ -444,6 +467,14 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     div(class="my-4") {
         utils::Warning(warning="This tool is being actively developed and is not yet ready for production; however, any feedback is welcome! <a href='https://github.com/rssblue/tools/issues' class='link' target='_blank' rel='noopenener'>Let us know</a> what kinds of data you would like to see visualized.".to_string())
     }
+    (if op3_url_wrong_url {
+        view!{ cx,
+        div(class="my-4") {
+            utils::Warning(warning=format!("URL query parameter <code class='font-mono'>op3-url</code> should start with “{OP3_PREFIX}”."))
+        }}
+    } else {
+        view!{ cx, }
+    })
 
     form(class="mb-4") {
         // Prevent submission with "Enter".
@@ -461,7 +492,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
                     class="block w-full border border-gray-300 pl-3 pr-1 rounded-tl-lg md:rounded-l-lg w-auto flex items-center bg-gray-100 text-gray-800",
                     disabled=true,
                     ) {
-                    "https://op3.dev/e"
+                    (OP3_PREFIX)
                 }
                 input(
                     class=format!("input-text-base rounded-tr-lg md:rounded-none md:rounded-r-none pl-1 text-ellipsis {}", input_cls.get()),
