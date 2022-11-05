@@ -465,7 +465,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     }
 
     p(class="mb-7") {
-        "This tool allows to visualize the countries of origin for your typical listeners. It is being actively developed an we welcome all feedback! "
+        "This tool allows to visualize the countries of origin for your typical listeners. It is being actively developed and we welcome all feedback! "
             a(
                 class="link",
                 href="https://github.com/rssblue/tools/issues",
