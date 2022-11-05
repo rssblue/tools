@@ -408,17 +408,8 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
             }
         }
     }
-    // Check if URL start with correct prefix.
-    let op3_url_wrong_url = !op3_url.is_empty() && !op3_url.starts_with(OP3_PREFIX);
 
     let url_str = create_signal(cx, String::new());
-    if !op3_url_wrong_url {
-        // Strip prefix from URL.
-        if let Some(url) = op3_url.strip_prefix(OP3_PREFIX) {
-            url_str.set(url.to_string());
-        }
-    }
-
     let fetching_data = create_signal(cx, false);
     let show_data = create_signal(cx, false);
     let input_cls = create_signal(cx, String::new());
@@ -441,6 +432,16 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     });
 
     create_effect(cx, move || fetching_data.set(transition.is_pending()));
+
+    // Check if URL start with correct prefix.
+    let op3_url_wrong_url = !op3_url.is_empty() && !op3_url.starts_with(OP3_PREFIX);
+    if !op3_url_wrong_url {
+        // Strip prefix from URL.
+        if let Some(url) = op3_url.strip_prefix(OP3_PREFIX) {
+            url_str.set(url.to_string());
+            update(true);
+        }
+    }
 
     view! { cx,
     h1(class="mb-3") { "Plot OP3" }
