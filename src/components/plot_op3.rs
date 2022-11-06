@@ -304,7 +304,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
 
     if rows.is_empty() {
         return view! { cx,
-            utils::Warning(warning=format!("No data found for the URL."))
+            utils::Warning(warning=format!("No data found for the URL. If the file is new (or has been only recently routed through OP3), reliable data might take some time to show up."))
         };
     }
 
