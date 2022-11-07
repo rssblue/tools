@@ -314,6 +314,8 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     let mut continent_counts: HashMap<String, usize> = HashMap::new();
     let mut country_counts: HashMap<String, usize> = HashMap::new();
     let mut app_counts: HashMap<String, usize> = HashMap::new();
+    let mut device_counts: HashMap<String, usize> = HashMap::new();
+    let mut os_counts: HashMap<String, usize> = HashMap::new();
     for row in rows {
         if let Some(continent) = row.continent {
             *continent_counts.entry(continent.to_string()).or_insert(0) += 1;
@@ -327,17 +329,21 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
                 if found_pattern {
                     break;
                 }
-                for regex_pattern_str in user_agent_detector.regex_patterns.iter() {
+                for compiled_regex in user_agent_detector.compiled_regexs.iter() {
                     if found_pattern {
                         break;
                     }
-                    if let Ok(regex_pattern) = regex::Regex::new(regex_pattern_str) {
-                        if regex_pattern.is_match(user_agent.as_str()) {
-                            if let Some(app) = &user_agent_detector.app {
-                                *app_counts.entry(app.to_string()).or_insert(0) += 1;
-                            }
-                            found_pattern = true;
+                    if compiled_regex.is_match(user_agent.as_str()) {
+                        if let Some(app) = &user_agent_detector.app {
+                            *app_counts.entry(app.to_string()).or_insert(0) += 1;
                         }
+                        if let Some(device) = &user_agent_detector.device {
+                            *device_counts.entry(device.to_string()).or_insert(0) += 1;
+                        }
+                        if let Some(os) = &user_agent_detector.os {
+                            *os_counts.entry(os.to_string()).or_insert(0) += 1;
+                        }
+                        found_pattern = true;
                     }
                 }
             }
@@ -412,12 +418,25 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         utils::Info(info=info)
     }
 
-    h2 { "Continents" }
-    (plot_bars(cx, &continent_counts))
-        h2 { "Countries" }
-    (plot_bars(cx, &country_counts))
-        h2 { "Apps" }
-    (plot_bars(cx, &app_counts))
+    details(open=true) {
+        summary(class="text-gray-900 text-2xl font-bold") { "Geography" }
+        div(class="text-gray-900 text-xl font-bold my-5") { "Continents" }
+        (plot_bars(cx, &continent_counts))
+            div(class="text-gray-900 text-xl font-bold my-5") { "Countries" }
+        (plot_bars(cx, &country_counts))
+    }
+    details(class="mt-7") {
+        summary(class="text-gray-900 text-2xl font-bold") { "Listener hardware/software" }
+
+        div(class="text-gray-900 text-xl font-bold my-5") { "Apps" }
+        (plot_bars(cx, &app_counts))
+
+            div(class="text-gray-900 text-xl font-bold my-5") { "Devices" }
+        (plot_bars(cx, &device_counts))
+
+            div(class="text-gray-900 text-xl font-bold my-5") { "Operating systems" }
+        (plot_bars(cx, &os_counts))
+    }
     }
 }
 
@@ -472,7 +491,6 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     view! { cx,
     h1(class="mb-3") { "Plot OP3" }
     h2(class="mt-3 text-gray-500") { "Visualize requests for a podcast media file." }
-    (format!("{:?}", USER_AGENT_DETECTORS))
     p(class="mt-7") {
             a(
                 class="link",
@@ -664,9 +682,16 @@ mod tests {
 }
 
 #[derive(Deserialize, Debug)]
-struct UserAgentDetector {
+struct UserAgentDeserializer {
     #[serde(default, rename = "user_agents")]
     regex_patterns: Vec<String>,
+    app: Option<String>,
+    device: Option<String>,
+    os: Option<String>,
+}
+
+struct UserAgentDetector {
+    compiled_regexs: Vec<regex::Regex>,
     app: Option<String>,
     device: Option<String>,
     os: Option<String>,
@@ -675,11 +700,36 @@ struct UserAgentDetector {
 struct UserAgent {
     app: Option<String>,
     os: Option<String>,
+    device: Option<String>,
 }
 
 const USER_AGENTS_FILE: &str = include_str!("../../assets/user-agents.json");
 
 lazy_static::lazy_static! {
     #[derive(Debug)]
-    static ref USER_AGENT_DETECTORS: Vec<UserAgentDetector> = serde_json::from_str(USER_AGENTS_FILE).unwrap();
+    static ref USER_AGENTS_DESERIALIZED: Vec<UserAgentDeserializer> = serde_json::from_str(USER_AGENTS_FILE).unwrap();
+    #[derive(Debug)]
+    // Skip if regex error.
+    static ref USER_AGENT_DETECTORS: Vec<UserAgentDetector> = USER_AGENTS_DESERIALIZED
+        .iter()
+        .filter_map(|deserializer| {
+            let compiled_regexs = deserializer
+                .regex_patterns
+                .iter()
+                .filter_map(|regex_pattern| {
+                    regex::Regex::new(regex_pattern).ok()
+                })
+                .collect::<Vec<regex::Regex>>();
+            if compiled_regexs.is_empty() {
+                None
+            } else {
+                Some(UserAgentDetector {
+                    compiled_regexs,
+                    app: deserializer.app.clone(),
+                    device: deserializer.device.clone(),
+                    os: deserializer.os.clone(),
+                })
+            }
+        })
+        .collect::<Vec<UserAgentDetector>>();
 }
