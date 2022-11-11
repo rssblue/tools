@@ -347,7 +347,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     if let Some(count) = country_counts.remove("Boliivia (Plurinational State of)") {
         country_counts.insert("Bolivia".to_string(), count);
     }
-    if let Some(count) = country_counts.remove("Tanania, United Republic of") {
+    if let Some(count) = country_counts.remove("Tanzania, United Republic of") {
         country_counts.insert("Tanzania".to_string(), count);
     }
     if let Some(count) = country_counts.remove("Virgin Islands (U.S.)") {
