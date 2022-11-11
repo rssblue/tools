@@ -57,7 +57,7 @@ pub fn Footer<G: Html>(cx: Scope) -> View<G> {
             target="_blank",
             rel="noopener",
             title="Opens in a new tab",
-            ) { (format!("git:{}", env!("GIT_HASH"))) }
+            ) { (format!("git:{}", env!("GIT_HASH_SHORT"))) }
     }
     }
 }
