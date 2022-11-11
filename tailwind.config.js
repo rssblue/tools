@@ -7,9 +7,8 @@ module.exports = {
       sans: ["Poppins"],
       mono: ["Source Code Pro"],
     },
-    extend: {
-      colors: {
-        blue: {
+    colors: {
+      primary: {
           50: "#E0ECF9",
           100: "#B2D1EF",
           200: "#87B7E6",
@@ -20,20 +19,8 @@ module.exports = {
           700: "#08498A",
           800: "#03376A",
           900: "#00254A",
-        },
-        red: {
-          50: "#F9E3E5",
-          100: "#F3C6CA",
-          200: "#EDAAB0",
-          300: "#E78D96",
-          400: "#E1717B",
-          500: "#DB5461",
-          600: "#C82A39",
-          700: "#96202B",
-          800: "#64151D",
-          900: "#320B0E",
-        },
-        yellow: {
+      },
+      warning: {
           50: "#FFF4D4",
           100: "#FEECB8",
           200: "#FDE59D",
@@ -44,14 +31,24 @@ module.exports = {
           700: "#B78F1B",
           800: "#95720B",
           900: "#735600",
-        },
-        green: colors.teal,
-        primary: colors.blue,
-        secondary: colors.yellow,
-        warning: colors.yellow,
-        danger: colors.red,
-        success: colors.green,
       },
+      danger: {
+          50: "#F9E3E5",
+          100: "#F3C6CA",
+          200: "#EDAAB0",
+          300: "#E78D96",
+          400: "#E1717B",
+          500: "#DB5461",
+          600: "#C82A39",
+          700: "#96202B",
+          800: "#64151D",
+          900: "#320B0E",
+      },
+      white: colors.white,
+      gray: colors.gray,
+      transparent: "transparent",
+    },
+    extend: {
       typography: {
         DEFAULT: {
           css: {

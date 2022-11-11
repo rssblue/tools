@@ -58,7 +58,7 @@
   }
 
   .btn-primary {
-    @apply text-gray-50 bg-blue-500 hover:bg-blue-600 custom-shadow;
+    @apply text-gray-50 bg-primary-500 hover:bg-primary-600 custom-shadow;
   }
 
   .btn-primary[disabled] {
@@ -66,7 +66,7 @@
   }
 
   .input-text-base {
-    @apply block w-full border-gray-300 shadow-sm focus:ring-blue-100 focus:ring focus:outline-none focus:shadow-none placeholder:text-gray-300 custom-transition;
+    @apply block w-full border-gray-300 shadow-sm focus:ring-primary-100 focus:ring focus:outline-none focus:shadow-none placeholder:text-gray-300 custom-transition;
   }
 
   .input-text {
@@ -78,23 +78,23 @@
   }
 
   .alert-warning {
-    @apply bg-yellow-50 text-yellow-800;
+    @apply bg-warning-50 text-warning-800;
   }
 
   .alert-info {
-    @apply bg-blue-50 text-blue-700;
+    @apply bg-primary-50 text-primary-700;
   }
 
   .link {
-    @apply underline decoration-blue-500 hover:decoration-transparent hover:text-blue-500 underline-offset-1;
+    @apply underline decoration-primary-500 hover:decoration-transparent hover:text-primary-500 underline-offset-1;
   }
 
   #my-table:not(.multiple) tbody tr:nth-of-type(2n + 1) td {
-    @apply bg-blue-100;
+    @apply bg-primary-100;
   }
 
   #my-table:not(.multiple) tbody tr:nth-of-type(2n + 2) td {
-    @apply bg-blue-200;
+    @apply bg-primary-200;
   }
 
   #my-table tbody tr td {
