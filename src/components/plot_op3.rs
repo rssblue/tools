@@ -321,43 +321,10 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     }
 
     // Improve country display names.
-    if let Some(count) = country_counts.remove("United States of America") {
-        country_counts.insert("USA".to_string(), count);
-    }
-    if let Some(count) =
-        country_counts.remove("United Kingdom of Great Britain and Northern Ireland")
-    {
-        country_counts.insert("UK".to_string(), count);
-    }
-    if let Some(count) = country_counts.remove("Russian Federation") {
-        country_counts.insert("Russia".to_string(), count);
-    }
-    if let Some(count) = country_counts.remove("Moldova (Republic of)") {
-        country_counts.insert("Moldova".to_string(), count);
-    }
-    if let Some(count) = country_counts.remove("Korea (Republic of)") {
-        country_counts.insert("South Korea".to_string(), count);
-    }
-    if let Some(count) = country_counts.remove("Venezuela (Bolivarian Republic of)") {
-        country_counts.insert("Venezuela".to_string(), count);
-    }
-    if let Some(count) = country_counts.remove("Iran (Islamic Republic of)") {
-        country_counts.insert("Iran".to_string(), count);
-    }
-    if let Some(count) = country_counts.remove("Boliivia (Plurinational State of)") {
-        country_counts.insert("Bolivia".to_string(), count);
-    }
-    if let Some(count) = country_counts.remove("Tanzania, United Republic of") {
-        country_counts.insert("Tanzania".to_string(), count);
-    }
-    if let Some(count) = country_counts.remove("Virgin Islands (U.S.)") {
-        country_counts.insert("Virgin Islands (USA)".to_string(), count);
-    }
-    if let Some(count) = country_counts.remove("Taiwan, Province of China") {
-        country_counts.insert("Taiwan".to_string(), count);
-    }
-    if let Some(count) = country_counts.remove("United Arab Emirates") {
-        country_counts.insert("UAE".to_string(), count);
+    for (simple_name, name) in simplified_country_names() {
+        if let Some(count) = country_counts.remove(simple_name) {
+            country_counts.insert(name.to_string(), count);
+        }
     }
 
     let info: View<G> = View::new_fragment(vec![view! {cx,
@@ -393,6 +360,23 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         h2 { "Countries" }
     (plot_bars(cx, &country_counts))
     }
+}
+
+fn simplified_country_names() -> Vec<(&'static str, &'static str)> {
+    vec![
+        ("United States of America", "USA"),
+        ("United Kingdom of Great Britain and Northern Ireland", "UK"),
+        ("Russian Federation", "Russia"),
+        ("Moldova (Republic of)", "Moldova"),
+        ("Korea (Republic of)", "South Korea"),
+        ("Venezuela (Bolivarian Republic of)", "Venezuela"),
+        ("Iran (Islamic Republic of)", "Iran"),
+        ("Boliivia (Plurinational State of)", "Bolivia"),
+        ("Tanzania, United Republic of", "Tanzania"),
+        ("Virgin Islands (U.S.)", "Virgin Islands (USA)"),
+        ("Taiwan, Province of China", "Taiwan"),
+        ("United Arab Emirates", "UAE"),
+    ]
 }
 
 #[component]
