@@ -28,6 +28,7 @@ pub fn Common<'a, G: Html>(cx: Scope<'a>, props: CommonProps<'a, G>) -> View<G> 
         (children)
         }
     }
+    Footer {}
     }
 }
 
@@ -42,6 +43,21 @@ pub fn Nav<G: Html>(cx: Scope) -> View<G> {
                 alt="RSS Blue Logo",
                 ){}
         }
+    }
+    }
+}
+
+#[component]
+pub fn Footer<G: Html>(cx: Scope) -> View<G> {
+    view! { cx,
+    footer(class="not-prose border-gray-200 py-2 border-t text-center") {
+        a(
+            class="link font-mono text-gray-400 decoration-primary-100",
+            href=format!("https://github.com/rssblue/tools/commit/{}", env!("GIT_HASH")),
+            target="_blank",
+            rel="noopener",
+            title="Opens in a new tab",
+            ) { (format!("git:{}", env!("GIT_HASH"))) }
     }
     }
 }
