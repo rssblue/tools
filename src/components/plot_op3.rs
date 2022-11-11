@@ -171,7 +171,7 @@ async fn fetch_op3(
                 ),
     )
     .await
-    .map_err(|_| "could not fetch the request")?;
+    .map_err(|e| format!("could not fetch the request ({e})"))?;
 
     let status = resp.status();
     let body = resp
