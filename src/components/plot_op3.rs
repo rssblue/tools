@@ -301,6 +301,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     let num_original_rows = rows.len();
     rows = filter_rows(rows);
     let num_filtered_rows = rows.len();
+    let num_filtered_out = num_original_rows - num_filtered_rows;
 
     if rows.is_empty() {
         return view! { cx,
@@ -333,7 +334,11 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         br {}
         br {}
 
-        "Data are from " strong{ (num_filtered_rows) " file requests" } " (" (num_original_rows-num_filtered_rows) " have been filtered out). These are indicative of but not equivalent to the total number of downloads because we are randomly sampling only a fraction of all requests, and there are also limits on how many requests are returned by OP3."
+        "Data are from " strong{ (num_filtered_rows) " file request"
+            (if num_filtered_rows == 1 { "" } else { "s" })
+        } " (" (num_filtered_out) " "
+        (if num_filtered_out == 1 { "has" } else { "have" })
+        " been filtered out). These are indicative of but not equivalent to the total number of downloads because we are randomly sampling only a fraction of all requests, and there are also limits on how many requests are returned by OP3."
 
         br {}
         br {}
