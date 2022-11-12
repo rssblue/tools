@@ -433,6 +433,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     }
 
     view! { cx,
+    crate::components::ToolsBreadcrumbs(title="Plot OP3")
     h1(class="mb-3") { "Plot OP3" }
     h2(class="mt-3 text-gray-500") { "Visualize requests for a podcast media file." }
     p(class="mt-7") {

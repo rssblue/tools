@@ -40,8 +40,9 @@ pub fn Info<G: Html>(cx: Scope, info: View<G>) -> View<G> {
     }
 }
 
-enum Icon {
+pub enum Icon {
     AlertCircle,
+    ChevronRight,
     Info,
 }
 
@@ -50,6 +51,9 @@ impl std::fmt::Display for Icon {
         let svg = match self {
             Self::AlertCircle => {
                 include_str!("../../assets/svg/feather-icons/alert-circle.svg")
+            }
+            Self::ChevronRight => {
+                include_str!("../../assets/svg/feather-icons/chevron-right.svg")
             }
             Self::Info => include_str!("../../assets/svg/feather-icons/info.svg"),
         };

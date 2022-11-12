@@ -23,6 +23,7 @@ pub fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
     });
 
     view! { cx,
+    crate::components::ToolsBreadcrumbs(title="Podcast GUID")
     h1(class="mb-3") { "Podcast GUID" }
     h2(class="mt-3 text-gray-500") { "Generate a unique, global identifier for your podcast." }
     p(class="my-7") {

@@ -25,7 +25,7 @@ pub fn Common<'a, G: Html>(cx: Scope<'a>, props: CommonProps<'a, G>) -> View<G> 
     Nav {}
     main(class="flex-grow") {
         div(class="pt-4 pb-7 mx-auto px-2 lg:px-0 max-w-prose") {
-        (children)
+            (children)
         }
     }
     Footer {}
@@ -58,6 +58,54 @@ pub fn Footer<G: Html>(cx: Scope) -> View<G> {
             rel="noopener",
             title="Opens in a new tab",
             ) { (format!("git:{}", env!("GIT_HASH_SHORT"))) }
+    }
+    }
+}
+
+#[component(inline_props)]
+pub fn ToolsBreadcrumbs<G: Html>(cx: Scope, title: &'static str) -> View<G> {
+    view! { cx,
+    nav(class="flex not-prose mb-2", aria-label="Breadcrumb") {
+        ol(class="inline-flex items-center space-x-1 md:space-x-2 text-gray-400") {
+            ToolsBreadcrumbItem(url=Some("https://rssblue.com"), title="RSS Blue", with_chevron=false)
+            ToolsBreadcrumbItem(url=Some("/"), title="Tools", with_chevron=true)
+            ToolsBreadcrumbItem(url=None, title=title, with_chevron=true)
+        }
+    }
+    }
+}
+
+#[component(inline_props)]
+fn ToolsBreadcrumbItem<G: Html>(
+    cx: Scope,
+    url: Option<&'static str>,
+    title: &'static str,
+    with_chevron: bool,
+) -> View<G> {
+    view! { cx,
+    li(class="inline-flex items-center", aria-current="page") {
+        (if with_chevron {
+            view! { cx,
+            span(
+                dangerously_set_inner_html=utils::Icon::ChevronRight.to_string().replace("{{ class }}", "h-4 stroke-2 mr-1 md:mr-2").as_str(),
+                ){}
+            }
+        } else {
+            view! { cx, }
+        })
+        (if let Some(url) = url {
+            view! { cx,
+            a(href=url, class="inline-flex items-center text-sm font-medium link link-primary no-underline") {
+                (title)
+            }
+            }
+        } else {
+            view! { cx,
+            span(class="inline-flex items-center text-sm font-medium text-gray-500") {
+                (title)
+            }
+            }
+        })
     }
     }
 }
