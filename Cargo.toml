@@ -14,6 +14,7 @@ web-sys = { version = "0.3.60", features = [
   "Url",
   "UrlSearchParams",
   "HtmlDialogElement",
+  "Storage",
 ] }
 wasm-bindgen = "0.2.83"
 chrono = "0.4.22"

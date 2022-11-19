@@ -410,11 +410,31 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     let fetching_data = create_signal(cx, false);
     let show_data = create_signal(cx, false);
     let input_cls = create_signal(cx, String::new());
-    let token = create_signal(cx, "preview07ce".to_string());
-    let settings_open = create_signal(cx, true);
+    let token = create_signal(cx, String::new());
+    let settings_open = create_signal(cx, false);
+
+    // Initialize OP3 token.
+    if let Some(window) = web_sys::window() {
+        if let Ok(Some(storage)) = window.local_storage() {
+            if let Ok(Some(token_)) = storage.get_item("op3-token") {
+                token.set(token_);
+            } else {
+                token.set("preview07ce".to_string());
+            }
+        }
+    }
 
     create_effect(cx, move || {
         change_dialog_state(*settings_open.get());
+        if !*settings_open.get() {
+            if let Some(window) = web_sys::window() {
+                if let Ok(Some(storage)) = window.local_storage() {
+                    storage
+                        .set_item("op3-token", &token.get())
+                        .expect("Failed to save API token to local storage");
+                }
+            }
+        }
     });
 
     let transition = use_transition(cx);
@@ -500,7 +520,20 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     dialog(id="settings") {
         h2(class="mt-0") { "Settings" }
 
-        label(for="token") { "OP3 API token" }
+        label(for="token") {
+            "OP3 API token"
+                small(class="text-gray-500") {
+                    " (get one "
+                        a(
+                            class="link decoration-primary-200",
+                            href="https://op3.dev/api/keys",
+                            target="_blank",
+                            rel="noopener",
+                            title="Opens in a new tab",
+                            ) { "here" }
+                    ")"
+                }
+        }
         input(
             id="token",
             type="text",
@@ -586,7 +619,7 @@ fn change_dialog_state(open: bool) {
             if let Some(dialog) = document.get_element_by_id("settings") {
                 let dialog: web_sys::HtmlDialogElement = dialog.dyn_into().unwrap();
                 if open {
-                    dialog.show_modal();
+                    dialog.show_modal().unwrap();
                 } else {
                     dialog.close();
                 }
