@@ -2,6 +2,7 @@ use sycamore::prelude::*;
 use sycamore_router::{HistoryIntegration, Route, Router};
 
 mod components;
+pub mod hyper_header;
 
 #[derive(Route)]
 enum AppRoutes {
