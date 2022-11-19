@@ -44,6 +44,8 @@ pub enum Icon {
     AlertCircle,
     ChevronRight,
     Info,
+    Settings,
+    X,
 }
 
 impl std::fmt::Display for Icon {
@@ -56,6 +58,8 @@ impl std::fmt::Display for Icon {
                 include_str!("../../assets/svg/feather-icons/chevron-right.svg")
             }
             Self::Info => include_str!("../../assets/svg/feather-icons/info.svg"),
+            Self::Settings => include_str!("../../assets/svg/feather-icons/settings.svg"),
+            Self::X => include_str!("../../assets/svg/feather-icons/x.svg"),
         };
         write!(f, "{svg}")
     }

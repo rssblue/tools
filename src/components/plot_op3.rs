@@ -7,6 +7,7 @@ use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 use sycamore::prelude::*;
 use sycamore::suspense::{use_transition, Suspense};
+use wasm_bindgen::JsCast;
 
 const OP3_PREFIX: &str = "https://op3.dev/e";
 
@@ -162,12 +163,14 @@ async fn fetch_op3(
     url: String,
     start_time: DateTime<Utc>,
     end_time: DateTime<Utc>,
+    token: String,
 ) -> Result<Vec<Row>, String> {
     let resp = reqwest_wasm::get(
-        format!("https://op3.dev/api/1/redirect-logs?format=json&token=preview07ce&limit=250&url={url}&start={start_time}&end={end_time}&_from=rssblue-plot-op3",
-            url=url,
-            start_time=start_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
-            end_time=end_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+        format!("https://op3.dev/api/1/redirect-logs?format=json&token={}&limit=250&url={url}&start={start_time}&end={end_time}&_from=rssblue-plot-op3",
+                token=token,
+                url=url,
+                start_time=start_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+                end_time=end_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
                 ),
     )
     .await
@@ -197,13 +200,17 @@ async fn fetch_op3(
     match status {
         reqwest_wasm::StatusCode::OK => Ok(rows),
         reqwest_wasm::StatusCode::BAD_REQUEST => {
-            let msg = "invalid OP3 API request";
+            let msg = "Invalid OP3 API request";
             if let Some(message) = op3_response.message {
                 Err(format!("{} (“{}”)", msg, message))
             } else {
                 Err(msg.to_string())
             }
         }
+        reqwest_wasm::StatusCode::FORBIDDEN => Err(
+            "Forbidden access to OP3, try changing the authentication token in the settings"
+                .to_string(),
+        ),
         _ => Err("unknown error".to_string()),
     }
 }
@@ -258,7 +265,7 @@ fn filter_rows(rows: Vec<Row>) -> Vec<Row> {
 }
 
 #[component(inline_props)]
-pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
+pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String, token: String) -> View<G> {
     let url = format!("https://op3.dev/e{}", url);
     let mut url = match url::Url::parse(url.as_str()) {
         Ok(url) => url,
@@ -282,7 +289,8 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     // Fetch OP3 for each period concurrently and combine.
     let results = futures::future::join_all(periods.iter().map(|(start, end)| {
         let url = url.clone();
-        async move { fetch_op3(url.to_string(), *start, *end).await }
+        let token = token.clone();
+        async move { fetch_op3(url.to_string(), *start, *end, token).await }
     }))
     .await;
     let mut rows = Vec::new();
@@ -402,6 +410,12 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     let fetching_data = create_signal(cx, false);
     let show_data = create_signal(cx, false);
     let input_cls = create_signal(cx, String::new());
+    let token = create_signal(cx, "preview07ce".to_string());
+    let settings_open = create_signal(cx, true);
+
+    create_effect(cx, move || {
+        change_dialog_state(*settings_open.get());
+    });
 
     let transition = use_transition(cx);
     let update = move |x| transition.start(move || fetching_data.set(x), || ());
@@ -433,7 +447,14 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     }
 
     view! { cx,
-    crate::components::ToolsBreadcrumbs(title="Plot OP3")
+    div(class="flex flex-row items-center") {
+        crate::components::ToolsBreadcrumbs(title="Plot OP3")
+            button(
+                class="ml-auto text-gray-400 hover:text-gray-600",
+                dangerously_set_inner_html=utils::Icon::Settings.to_string().replace("{{ class }}", "h-5 stroke-2").as_str(),
+                on:click=|_| settings_open.set(true),
+                ) {}
+    }
     h1(class="mb-3") { "Plot OP3" }
     h2(class="mt-3 text-gray-500") { "Visualize requests for a podcast media file." }
     p(class="mt-7") {
@@ -475,6 +496,28 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     } else {
         view!{ cx, }
     })
+
+    dialog(id="settings") {
+        h2(class="mt-0") { "Settings" }
+
+        label(for="token") { "OP3 API token" }
+        input(
+            id="token",
+            type="text",
+            class="input-text font-mono",
+            bind:value=token,
+            )
+
+            button(
+                class="btn btn-primary w-full mt-4",
+                type="button",
+                tabindex="-1",
+                on:click=|_| settings_open.set(false),
+                ) {
+                "Save"
+            }
+
+    }
 
     form(class="mb-4") {
         // Prevent submission with "Enter".
@@ -526,7 +569,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     (if *show_data.get() {
         view!{cx,
             Suspense(fallback=view! { cx, }) {
-                Geography(url=url_str.get().to_string())
+                Geography(url=url_str.get().to_string(), token=token.get().to_string())
             }
         }
     } else {
@@ -534,6 +577,21 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
             }
     })
 
+    }
+}
+
+fn change_dialog_state(open: bool) {
+    if let Some(window) = web_sys::window() {
+        if let Some(document) = window.document() {
+            if let Some(dialog) = document.get_element_by_id("settings") {
+                let dialog: web_sys::HtmlDialogElement = dialog.dyn_into().unwrap();
+                if open {
+                    dialog.show_modal();
+                } else {
+                    dialog.close();
+                }
+            }
+        }
     }
 }
 

@@ -27,8 +27,12 @@
     @apply invisible;
   }
 
-  summary {
+  summary, button {
     @apply cursor-pointer;
+  }
+
+  dialog {
+    @apply bg-white rounded-xl max-w-md sm:w-96 shadow-lg p-5 backdrop:bg-primary-800/50 z-20;
   }
 }
 
