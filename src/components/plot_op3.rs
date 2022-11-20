@@ -165,16 +165,19 @@ async fn fetch_op3(
     end_time: DateTime<Utc>,
     token: String,
 ) -> Result<Vec<Row>, String> {
-    let resp = reqwest_wasm::get(
-        format!("https://op3.dev/api/1/redirect-logs?format=json&token={}&limit=250&url={url}&start={start_time}&end={end_time}&_from=rssblue-plot-op3",
-                token=token,
+    let client = reqwest_wasm::Client::new();
+    let resp = client
+        .get(
+        format!("https://op3.dev/api/1/redirect-logs?format=json&limit=250&url={url}&start={start_time}&end={end_time}&_from=rssblue-plot-op3",
                 url=url,
                 start_time=start_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
                 end_time=end_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
                 ),
-    )
-    .await
-    .map_err(|e| format!("could not fetch the request ({e})"))?;
+                )
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .await
+        .map_err(|e| format!("could not fetch the request ({e})"))?;
 
     let status = resp.status();
     let body = resp
