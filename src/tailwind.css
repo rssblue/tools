@@ -108,4 +108,11 @@
   #my-table tbody tr th {
     @apply text-xs;
   }
+
+  #splash-screen {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
 }

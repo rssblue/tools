@@ -20,6 +20,14 @@ fn main() {
     console_error_panic_hook::set_once();
     console_log::init_with_level(log::Level::Debug).unwrap();
 
+    web_sys::window()
+        .unwrap()
+        .document()
+        .unwrap()
+        .get_element_by_id("splash-screen")
+        .unwrap()
+        .remove();
+
     sycamore::render(|cx| {
         view! { cx,
             Router(
