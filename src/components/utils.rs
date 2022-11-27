@@ -20,6 +20,25 @@ pub fn Warning<G: Html>(cx: Scope, warning: String) -> View<G> {
 }
 
 #[component(inline_props)]
+pub fn Error<G: Html>(cx: Scope, error: String) -> View<G> {
+    let icon = Icon::XCircle
+        .to_string()
+        .replace("{{ class }}", "inline flex-shrink-0 mr-3 w-6 h-6 stroke-2");
+
+    view! {cx,
+    div(
+        class="flex items-center alert alert-danger",
+        role="alert",
+        ) {
+        span(
+            dangerously_set_inner_html=icon.as_str(),
+            ){}
+        span(dangerously_set_inner_html=error.as_str()){}
+    }
+    }
+}
+
+#[component(inline_props)]
 pub fn Info<G: Html>(cx: Scope, info: View<G>) -> View<G> {
     let icon = Icon::Info
         .to_string()
@@ -46,6 +65,7 @@ pub enum Icon {
     Info,
     Settings,
     X,
+    XCircle,
 }
 
 impl std::fmt::Display for Icon {
@@ -60,6 +80,7 @@ impl std::fmt::Display for Icon {
             Self::Info => include_str!("../../assets/svg/feather-icons/info.svg"),
             Self::Settings => include_str!("../../assets/svg/feather-icons/settings.svg"),
             Self::X => include_str!("../../assets/svg/feather-icons/x.svg"),
+            Self::XCircle => include_str!("../../assets/svg/feather-icons/x-circle.svg"),
         };
         write!(f, "{svg}")
     }

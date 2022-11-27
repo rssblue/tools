@@ -15,6 +15,12 @@ web-sys = { version = "0.3.60", features = [
   "UrlSearchParams",
   "HtmlDialogElement",
   "Storage",
+  "Headers",
+  "Request",
+  "RequestInit",
+  "RequestMode",
+  "Response",
+  "Window",
 ] }
 wasm-bindgen = "0.2.83"
 chrono = "0.4.22"
@@ -27,6 +33,8 @@ log = "0.4.17"
 itertools = "0.10.5"
 rand = "0.8.5"
 futures = "0.3.25"
+badpod = "0.3.0"
+wasm-bindgen-futures = "0.4.33"
 
 [profile.release]
 panic = "abort"

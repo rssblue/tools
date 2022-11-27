@@ -85,6 +85,10 @@
     @apply bg-warning-50 text-warning-800;
   }
 
+  .alert-danger {
+    @apply bg-danger-50 text-danger-700;
+  }
+
   .alert-info {
     @apply bg-primary-50 text-primary-700;
   }

@@ -13,6 +13,10 @@ pub fn Index<G: Html>(cx: Scope) -> View<G> {
             class=format!("btn btn-primary"),
             href="/plot-op3",
             ) { "Plot OP3" }
+        a(
+            class=format!("btn btn-primary"),
+            href="/validator",
+            ) { "Validator" }
     }
     }
 }

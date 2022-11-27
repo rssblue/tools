@@ -9,6 +9,9 @@ pub use podcast_guid::PodcastGuid;
 mod plot_op3;
 pub use plot_op3::PlotOp3;
 
+mod validator;
+pub use validator::Validator;
+
 pub mod utils;
 
 #[derive(Prop)]
