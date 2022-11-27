@@ -168,18 +168,22 @@ impl std::fmt::Display for Error {
             }
             Error::InvalidAttribute(attr, val) => {
                 if attr == "value" {
-                    write!(f, "Invalid value: {}", val)
+                    write!(f, "Invalid value: \"{}\"", val)
                 } else {
-                    write!(f, "Invalid attribute: {}={}", attr, val)
+                    write!(f, "Invalid attribute: {}=\"{}\"", attr, val)
                 }
             }
             Error::AttributeExceedsMaxLength(attr, val, max) => {
                 if attr == "value" {
-                    write!(f, "Value exceeds maximum length: {} (max: {})", val, max)
+                    write!(
+                        f,
+                        "Value exceeds maximum length: \"{}\" (max: {})",
+                        val, max
+                    )
                 } else {
                     write!(
                         f,
-                        "Attribute exceeds maximum length: {}={} (max: {})",
+                        "Attribute exceeds maximum length: {}=\"{}\" (max: {})",
                         attr, val, max
                     )
                 }
@@ -226,7 +230,7 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node) -> View<G> {
 
     view! { cx,
     details(open=true) {
-        summary(class="font-mono text-lg") {
+        summary(class="font-mono text-lg font-bold") {
             "<"(node.name)">"
                 (if have_nested_errors {
                     view! {cx, span(class="text-danger-500") { " ✗" } }
@@ -244,7 +248,7 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node) -> View<G> {
             Indexed(
                 iterable=attributes,
                 view=|cx, x| view! { cx,
-                div(class="font-mono") {
+                div(class="font-mono text-sm") {
                     span(class="font-bold") { (x.0) } "=" (x.1)
                 }
                 },
@@ -353,7 +357,7 @@ fn analyse_channel(channel: &badpod::Channel) -> Node {
                     name: TagName(Some(Namespace::Podcast), "medium".to_string()),
                     errors: vec![Error::InvalidAttribute(
                         "value".to_string(),
-                        format!("\"{}\"", medium),
+                        medium.to_string(),
                     )],
                     ..Default::default()
                 });
@@ -408,11 +412,9 @@ fn analyse_channel(channel: &badpod::Channel) -> Node {
                 badpod::Bool::Ok(b) => {
                     node.attributes.push(("value".to_string(), b.to_string()));
                 }
-                badpod::Bool::Other(b) => {
-                    node.errors.push(Error::InvalidAttribute(
-                        "value".to_string(),
-                        format!("\"{}\"", b),
-                    ));
+                badpod::Bool::Other(s) => {
+                    node.errors
+                        .push(Error::InvalidAttribute("value".to_string(), s.to_string()));
                 }
             }
         } else {
@@ -423,10 +425,8 @@ fn analyse_channel(channel: &badpod::Channel) -> Node {
         if let Some(id) = &block.id {
             match id {
                 badpod::podcast::Service::Other(s) => {
-                    node.errors.push(Error::InvalidAttribute(
-                        "id".to_string(),
-                        format!("\"{}\"", s),
-                    ));
+                    node.errors
+                        .push(Error::InvalidAttribute("id".to_string(), s.to_string()));
                 }
                 _ => {
                     node.attributes.push(("id".to_string(), id.to_string()));
@@ -552,10 +552,8 @@ fn analyse_channel(channel: &badpod::Channel) -> Node {
                         .push(("geo".to_string(), geo_str.to_string()));
                 }
                 badpod::podcast::Geo::Other(s) => {
-                    node.errors.push(Error::InvalidAttribute(
-                        "geo".to_string(),
-                        format!("\"{}\"", s),
-                    ));
+                    node.errors
+                        .push(Error::InvalidAttribute("geo".to_string(), s.to_string()));
                 }
             }
         }
@@ -576,10 +574,8 @@ fn analyse_channel(channel: &badpod::Channel) -> Node {
                         .push(("osm".to_string(), osm_str.to_string()));
                 }
                 badpod::podcast::Osm::Other(s) => {
-                    node.errors.push(Error::InvalidAttribute(
-                        "osm".to_string(),
-                        format!("\"{}\"", s),
-                    ));
+                    node.errors
+                        .push(Error::InvalidAttribute("osm".to_string(), s.to_string()));
                 }
             }
         }
@@ -619,10 +615,8 @@ fn analyse_channel(channel: &badpod::Channel) -> Node {
         if let Some(group) = &person.group {
             match group {
                 badpod::podcast::PersonGroup::Other(s) => {
-                    node.errors.push(Error::InvalidAttribute(
-                        "group".to_string(),
-                        format!("\"{}\"", s),
-                    ));
+                    node.errors
+                        .push(Error::InvalidAttribute("group".to_string(), s.to_string()));
                 }
                 _ => {
                     node.attributes
@@ -634,10 +628,8 @@ fn analyse_channel(channel: &badpod::Channel) -> Node {
         if let Some(role) = &person.role {
             match role {
                 badpod::podcast::PersonRole::Other(s) => {
-                    node.errors.push(Error::InvalidAttribute(
-                        "role".to_string(),
-                        format!("\"{}\"", s),
-                    ));
+                    node.errors
+                        .push(Error::InvalidAttribute("role".to_string(), s.to_string()));
                 }
                 _ => {
                     node.attributes.push(("role".to_string(), role.to_string()));
@@ -696,7 +688,7 @@ fn analyse_channel(channel: &badpod::Channel) -> Node {
                 badpod::DateTime::Other(s) => {
                     node.errors.push(Error::InvalidAttribute(
                         "pubDate".to_string(),
-                        format!("\"{}\"", s),
+                        s.to_string(),
                     ));
                 }
             }
@@ -708,10 +700,8 @@ fn analyse_channel(channel: &badpod::Channel) -> Node {
                     node.attributes.push(("length".to_string(), i.to_string()));
                 }
                 badpod::Integer::Other(s) => {
-                    node.errors.push(Error::InvalidAttribute(
-                        "length".to_string(),
-                        format!("\"{}\"", s),
-                    ));
+                    node.errors
+                        .push(Error::InvalidAttribute("length".to_string(), s.to_string()));
                 }
             }
         }
@@ -719,10 +709,8 @@ fn analyse_channel(channel: &badpod::Channel) -> Node {
         if let Some(mimetype) = &trailer.type_ {
             match mimetype {
                 badpod::MimeEnclosure::Other(s) => {
-                    node.errors.push(Error::InvalidAttribute(
-                        "type".to_string(),
-                        format!("\"{}\"", s),
-                    ));
+                    node.errors
+                        .push(Error::InvalidAttribute("type".to_string(), s.to_string()));
                 }
                 _ => {
                     node.attributes
@@ -737,15 +725,267 @@ fn analyse_channel(channel: &badpod::Channel) -> Node {
                     node.attributes.push(("season".to_string(), i.to_string()));
                 }
                 badpod::Integer::Other(s) => {
-                    node.errors.push(Error::InvalidAttribute(
-                        "season".to_string(),
-                        format!("\"{}\"", s),
-                    ));
+                    node.errors
+                        .push(Error::InvalidAttribute("season".to_string(), s.to_string()));
                 }
             }
         }
 
         children.push(node);
+    }
+
+    if !channel.podcast_license.is_empty() {
+        let mut node = Node {
+            name: TagName(Some(Namespace::Podcast), "license".to_string()),
+            ..Default::default()
+        };
+
+        let license = &channel.podcast_license[0];
+
+        if let Some(url) = &license.url {
+            node.attributes
+                .push(("url".to_string(), format!("\"{}\"", url)));
+        }
+
+        if let Some(value) = &license.value {
+            match value {
+                badpod::podcast::LicenseType::Other(s) => {
+                    if s.len() > 128 {
+                        node.errors.push(Error::AttributeExceedsMaxLength(
+                            "value".to_string(),
+                            s.to_string(),
+                            128,
+                        ));
+                    } else {
+                        node.attributes
+                            .push(("value".to_string(), format!("\"{}\"", s)));
+                    }
+                    if license.url.is_none() {
+                        node.errors.push(Error::MissingAttribute("url".to_string()));
+                    }
+                }
+                _ => {
+                    node.attributes
+                        .push(("value".to_string(), value.to_string()));
+                }
+            }
+        }
+
+        children.push(node);
+
+        if channel.podcast_license.len() > 1 {
+            errors.push(Error::MultipleChildren(TagName(
+                Some(Namespace::Podcast),
+                "license".to_string(),
+            )));
+        }
+    }
+
+    if !channel.podcast_value.is_empty() {
+        let mut node = Node {
+            name: TagName(Some(Namespace::Podcast), "value".to_string()),
+            ..Default::default()
+        };
+
+        let v4v_value = &channel.podcast_value[0];
+
+        for recipient in &v4v_value.value_recipient {
+            let mut recipient_node = Node {
+                name: TagName(Some(Namespace::Podcast), "valueRecipient".to_string()),
+                ..Default::default()
+            };
+
+            if let Some(type_) = &recipient.type_ {
+                match type_ {
+                    badpod::podcast::ValueRecipientType::Other(s) => {
+                        recipient_node
+                            .errors
+                            .push(Error::InvalidAttribute("type".to_string(), s.to_string()));
+                    }
+                    _ => {
+                        recipient_node
+                            .attributes
+                            .push(("type".to_string(), type_.to_string()));
+                    }
+                }
+            }
+
+            if let Some(address) = &recipient.address {
+                recipient_node
+                    .attributes
+                    .push(("address".to_string(), format!("\"{}\"", address)));
+            } else {
+                recipient_node
+                    .errors
+                    .push(Error::MissingAttribute("address".to_string()));
+            }
+
+            if let Some(split) = &recipient.split {
+                match split {
+                    badpod::Integer::Ok(i) => {
+                        recipient_node
+                            .attributes
+                            .push(("split".to_string(), i.to_string()));
+                    }
+                    badpod::Integer::Other(s) => {
+                        recipient_node
+                            .errors
+                            .push(Error::InvalidAttribute("split".to_string(), s.to_string()));
+                    }
+                }
+            }
+
+            if let Some(name) = &recipient.name {
+                recipient_node
+                    .attributes
+                    .push(("name".to_string(), format!("\"{}\"", name)));
+            }
+
+            if let Some(custom_key) = &recipient.custom_key {
+                recipient_node
+                    .attributes
+                    .push(("customKey".to_string(), format!("\"{}\"", custom_key)));
+            }
+
+            if let Some(custom_value) = &recipient.custom_value {
+                recipient_node
+                    .attributes
+                    .push(("customValue".to_string(), format!("\"{}\"", custom_value)));
+            }
+
+            match (&recipient.custom_key, &recipient.custom_value) {
+                (Some(_), None) => {
+                    recipient_node
+                        .errors
+                        .push(Error::MissingAttribute("customValue".to_string()));
+                }
+                (None, Some(_)) => {
+                    recipient_node
+                        .errors
+                        .push(Error::MissingAttribute("customKey".to_string()));
+                }
+                _ => {}
+            }
+
+            if let Some(fee) = &recipient.fee {
+                match fee {
+                    badpod::Bool::Ok(b) => {
+                        recipient_node
+                            .attributes
+                            .push(("fee".to_string(), b.to_string()));
+                    }
+                    badpod::Bool::Other(s) => {
+                        recipient_node
+                            .errors
+                            .push(Error::InvalidAttribute("fee".to_string(), s.to_string()));
+                    }
+                }
+            }
+
+            node.children.push(recipient_node);
+        }
+
+        if v4v_value.value_recipient.is_empty() {
+            node.errors.push(Error::MissingChild(TagName(
+                Some(Namespace::Podcast),
+                "valueRecipient".to_string(),
+            )));
+        }
+
+        match &v4v_value.type_ {
+            Some(badpod::podcast::ValueType::Other(s)) => {
+                node.errors
+                    .push(Error::InvalidAttribute("type".to_string(), s.to_string()));
+            }
+            Some(type_) => {
+                node.attributes
+                    .push(("type".to_string(), type_.to_string()));
+            }
+            None => {
+                node.errors
+                    .push(Error::MissingAttribute("type".to_string()));
+            }
+        }
+
+        match &v4v_value.method {
+            Some(badpod::podcast::ValueMethod::Other(s)) => {
+                node.errors
+                    .push(Error::InvalidAttribute("method".to_string(), s.to_string()));
+            }
+            Some(method) => {
+                node.attributes
+                    .push(("method".to_string(), method.to_string()));
+            }
+            None => {
+                node.errors
+                    .push(Error::MissingAttribute("method".to_string()));
+            }
+        }
+
+        match &v4v_value.suggested {
+            Some(badpod::Float::Ok(f)) => {
+                node.attributes
+                    .push(("suggested".to_string(), f.to_string()));
+            }
+            Some(badpod::Float::Other(s)) => {
+                node.errors.push(Error::InvalidAttribute(
+                    "suggested".to_string(),
+                    s.to_string(),
+                ));
+            }
+            None => {}
+        }
+
+        children.push(node);
+
+        if channel.podcast_value.len() > 1 {
+            errors.push(Error::MultipleChildren(TagName(
+                Some(Namespace::Podcast),
+                "value".to_string(),
+            )));
+        }
+    }
+
+    if !channel.podcast_images.is_empty() {
+        let mut node = Node {
+            name: TagName(Some(Namespace::Podcast), "images".to_string()),
+            ..Default::default()
+        };
+
+        let mut img_str = "{ ".to_string();
+        let mut success = true;
+        for image in &channel.podcast_images[0].srcset {
+            match image {
+                badpod::podcast::Image::Ok(url, width) => {
+                    img_str.push_str(&format!("{{ url: \"{}\", width: {} }}, ", url, width));
+                }
+                badpod::podcast::Image::Other(s) => {
+                    node.errors
+                        .push(Error::InvalidAttribute("srcset".to_string(), s.to_string()));
+                    success = false;
+                    break;
+                }
+            }
+        }
+        if !channel.podcast_images.is_empty() && success {
+            img_str.push_str("}");
+            node.attributes
+                .push(("srcset".to_string(), img_str.to_string()));
+        }
+
+        if channel.podcast_images.is_empty() {
+            node.errors
+                .push(Error::MissingAttribute("srcset".to_string()));
+        }
+
+        children.push(node);
+
+        if channel.podcast_images.len() > 1 {
+            errors.push(Error::MultipleChildren(TagName(
+                Some(Namespace::Podcast),
+                "images".to_string(),
+            )));
+        }
     }
 
     Node {
