@@ -1,4 +1,5 @@
 use sycamore::prelude::*;
+use wasm_bindgen::JsCast;
 
 pub enum AlertType {
     Success,
@@ -94,6 +95,21 @@ pub fn Link<G: Html>(cx: Scope, url: String, text: String, new_tab: bool) -> Vie
             title=title,
             ) {
             (text)
+        }
+    }
+}
+
+pub fn change_dialog_state(open: bool) {
+    if let Some(window) = web_sys::window() {
+        if let Some(document) = window.document() {
+            if let Some(dialog) = document.get_element_by_id("settings") {
+                let dialog: web_sys::HtmlDialogElement = dialog.dyn_into().unwrap();
+                if open {
+                    dialog.show_modal().unwrap();
+                } else {
+                    dialog.close();
+                }
+            }
         }
     }
 }

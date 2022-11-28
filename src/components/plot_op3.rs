@@ -7,7 +7,6 @@ use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 use sycamore::prelude::*;
 use sycamore::suspense::{use_transition, Suspense};
-use wasm_bindgen::JsCast;
 
 const OP3_PREFIX: &str = "https://op3.dev/e";
 
@@ -428,7 +427,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     }
 
     create_effect(cx, move || {
-        change_dialog_state(*settings_open.get());
+        utils::change_dialog_state(*settings_open.get());
         if !*settings_open.get() {
             if let Some(window) = web_sys::window() {
                 if let Ok(Some(storage)) = window.local_storage() {
@@ -589,21 +588,6 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
             }
     })
 
-    }
-}
-
-fn change_dialog_state(open: bool) {
-    if let Some(window) = web_sys::window() {
-        if let Some(document) = window.document() {
-            if let Some(dialog) = document.get_element_by_id("settings") {
-                let dialog: web_sys::HtmlDialogElement = dialog.dyn_into().unwrap();
-                if open {
-                    dialog.show_modal().unwrap();
-                } else {
-                    dialog.close();
-                }
-            }
-        }
     }
 }
 
