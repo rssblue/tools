@@ -477,6 +477,10 @@ fn analyze_channel(channel: &badpod::Channel) -> Node {
         children.push(analyze_item(item));
     }
 
+    for live_item in &channel.podcast_live_item {
+        children.push(analyze_podcast_live_item(live_item));
+    }
+
     Node {
         name: TagName(None, "channel".to_string()),
         children,
@@ -597,6 +601,156 @@ fn analyze_item(item: &badpod::Item) -> Node {
         children,
         errors,
         attributes: Vec::new(),
+    }
+}
+
+fn analyze_podcast_live_item(item: &badpod::podcast::LiveItem) -> Node {
+    let mut children = Vec::new();
+    let mut attributes = Vec::new();
+    let mut errors = Vec::new();
+
+    match &item.status {
+        Some(badpod::podcast::LiveItemStatus::Other(s)) => {
+            errors.push(Error::InvalidAttribute("status".to_string(), s.to_string()))
+        }
+        Some(s) => attributes.push(("status".to_string(), s.to_string())),
+        None => errors.push(Error::MissingAttribute("status".to_string())),
+    }
+
+    match &item.start {
+        Some(badpod::DateTime::Other(s)) => {
+            errors.push(Error::InvalidAttribute("start".to_string(), s.to_string()))
+        }
+        Some(t) => attributes.push(("start".to_string(), t.to_string())),
+        None => errors.push(Error::MissingAttribute("start".to_string())),
+    }
+
+    match &item.end {
+        Some(badpod::DateTime::Other(s)) => {
+            errors.push(Error::InvalidAttribute("end".to_string(), s.to_string()))
+        }
+        Some(t) => attributes.push(("end".to_string(), t.to_string())),
+        None => errors.push(Error::MissingAttribute("end".to_string())),
+    }
+
+    for content_link in &item.content_link {
+        children.push(analyze_podcast_content_link(content_link));
+    }
+    if item.content_link.is_empty() {
+        errors.push(Error::MissingChild(TagName(
+            Some(Namespace::Podcast),
+            "contentLink".to_string(),
+        )));
+    }
+
+    for title in &item.title {
+        children.push(analyze_title(title.to_string()));
+    }
+    match item.title.len() {
+        0 => errors.push(Error::MissingChild(TagName(None, "title".to_string()))),
+        1 => {}
+        _ => errors.push(Error::MultipleChildren(TagName(None, "title".to_string()))),
+    }
+
+    for v4v_value in &item.podcast_value {
+        children.push(analyze_podcast_value(v4v_value));
+    }
+    if item.podcast_value.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "value".to_string(),
+        )));
+    }
+
+    for person in &item.podcast_person {
+        children.push(analyze_podcast_person(person));
+    }
+
+    for location in &item.podcast_location {
+        children.push(analyze_podcast_location(location));
+    }
+    if item.podcast_location.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "location".to_string(),
+        )));
+    }
+
+    for images in &item.podcast_images {
+        children.push(analyze_podcast_images(images));
+    }
+    if item.podcast_images.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "images".to_string(),
+        )));
+    }
+
+    for txt in &item.podcast_txt {
+        children.push(analyze_podcast_txt(txt));
+    }
+
+    for transcript in &item.podcast_transcript {
+        children.push(analyze_podcast_transcript(transcript));
+    }
+
+    for chapters in &item.podcast_chapters {
+        children.push(analyze_podcast_chapters(chapters));
+    }
+    if item.podcast_chapters.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "chapters".to_string(),
+        )));
+    }
+
+    for soundbite in &item.podcast_soundbite {
+        children.push(analyze_podcast_soundbite(soundbite));
+    }
+
+    for season in &item.podcast_season {
+        children.push(analyze_podcast_season(season));
+    }
+    if item.podcast_season.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "season".to_string(),
+        )));
+    }
+
+    for episode in &item.podcast_episode {
+        children.push(analyze_podcast_episode(episode));
+    }
+    if item.podcast_episode.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "episode".to_string(),
+        )));
+    }
+
+    for license in &item.podcast_license {
+        children.push(analyze_podcast_license(license));
+    }
+    if item.podcast_license.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "license".to_string(),
+        )));
+    }
+
+    for alternate_enclosure in &item.podcast_alternate_enclosure {
+        children.push(analyze_podcast_alternate_enclosure(alternate_enclosure));
+    }
+
+    for social_interact in &item.podcast_social_interact {
+        children.push(analyze_podcast_social_interact(social_interact));
+    }
+
+    Node {
+        name: TagName(Some(Namespace::Podcast), "liveItem".to_string()),
+        children,
+        errors,
+        attributes,
     }
 }
 
@@ -1596,6 +1750,30 @@ fn analyze_podcast_social_interact(social_interact: &badpod::podcast::SocialInte
 
     Node {
         name: TagName(Some(Namespace::Podcast), "socialInteract".to_string()),
+        errors,
+        attributes,
+        ..Default::default()
+    }
+}
+
+fn analyze_podcast_content_link(content_link: &badpod::podcast::ContentLink) -> Node {
+    let mut errors = Vec::new();
+    let mut attributes = Vec::new();
+
+    if let Some(value) = &content_link.value {
+        attributes.push(("value".to_string(), format!("\"{}\"", value)));
+    } else {
+        errors.push(Error::MissingAttribute("value".to_string()));
+    }
+
+    if let Some(href) = &content_link.href {
+        attributes.push(("href".to_string(), format!("\"{}\"", href)));
+    } else {
+        errors.push(Error::MissingAttribute("href".to_string()));
+    }
+
+    Node {
+        name: TagName(Some(Namespace::Podcast), "contentLink".to_string()),
         errors,
         attributes,
         ..Default::default()
