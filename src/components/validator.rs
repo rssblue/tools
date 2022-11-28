@@ -120,7 +120,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
         input(
             id="token",
             type="url",
-            class="input-text",
+            class="input-text text-gray-700",
             placeholder=CORS_PROXY_URL,
             bind:value=proxy,
             )
