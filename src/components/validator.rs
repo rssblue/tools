@@ -76,6 +76,10 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
         " by Podbase."
     }
 
+    div(class="my-7") {
+        utils::AlertHTML(type_=utils::AlertType::Warning, msg=view! {cx, "This tool is being actively developed and may not work as expected. Please report any issues " utils::Link(url="https://github.com/rssblue/tools/issues".to_string(), text="on GitHub".to_string(), new_tab=true) "." })
+    }
+
     form(class="mb-4") {
         // Prevent submission with "Enter".
         button(
