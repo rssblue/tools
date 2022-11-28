@@ -183,6 +183,11 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                 }
                 }
             } else {
+                let attr = if attr == "value_attr" {
+                    "value".to_string()
+                } else {
+                    attr.to_string()
+                };
                 view! { cx,
                 div(class="text-red-500") {
                     "Missing attribute "
@@ -200,6 +205,11 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                 }
                 }
             } else {
+                let attr = if attr == "value_attr" {
+                    "value".to_string()
+                } else {
+                    attr.to_string()
+                };
                 view! { cx,
                 div(class="text-red-500") {
                     "Attribute "
@@ -228,16 +238,31 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
             }
         }
         Error::AttributeExceedsMaxLength(attr, value, max_len) => {
-            view! { cx,
-            div(class="text-red-500") {
-                "Attribute "
-                    code(class="attr") { (attr) }
-                " with value "
-                    code { "\"" (value) "\"" }
-                " exceeds maximum length of "
-                    (max_len)
+            if attr == "value" {
+                view! { cx,
+                div(class="text-red-500") {
+                    "Value "
+                        code { "\"" (value) "\"" }
+                    " exceeds maximum length of "
+                        code { (max_len) }
                     " characters"
-            }
+                }
+                }
+            } else {
+                let attr = if attr == "value_attr" {
+                    "value".to_string()
+                } else {
+                    attr.to_string()
+                };
+                view! { cx,
+                div(class="text-red-500") {
+                    "Attribute "
+                        code(class="attr") { (attr) }
+                    " exceeds maximum length of "
+                        code { (max_len) }
+                    " characters"
+                }
+                }
             }
         }
         Error::Custom(msg) => {
@@ -513,6 +538,58 @@ fn analyze_item(item: &badpod::Item) -> Node {
 
     for transcript in &item.podcast_transcript {
         children.push(analyze_podcast_transcript(transcript));
+    }
+
+    for chapters in &item.podcast_chapters {
+        children.push(analyze_podcast_chapters(chapters));
+    }
+    if item.podcast_chapters.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "chapters".to_string(),
+        )));
+    }
+
+    for soundbite in &item.podcast_soundbite {
+        children.push(analyze_podcast_soundbite(soundbite));
+    }
+
+    for season in &item.podcast_season {
+        children.push(analyze_podcast_season(season));
+    }
+    if item.podcast_season.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "season".to_string(),
+        )));
+    }
+
+    for episode in &item.podcast_episode {
+        children.push(analyze_podcast_episode(episode));
+    }
+    if item.podcast_episode.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "episode".to_string(),
+        )));
+    }
+
+    for license in &item.podcast_license {
+        children.push(analyze_podcast_license(license));
+    }
+    if item.podcast_license.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "license".to_string(),
+        )));
+    }
+
+    for alternate_enclosure in &item.podcast_alternate_enclosure {
+        children.push(analyze_podcast_alternate_enclosure(alternate_enclosure));
+    }
+
+    for social_interact in &item.podcast_social_interact {
+        children.push(analyze_podcast_social_interact(social_interact));
     }
 
     Node {
@@ -1158,6 +1235,367 @@ fn analyze_podcast_transcript(transcript: &badpod::podcast::Transcript) -> Node 
 
     Node {
         name: TagName(Some(Namespace::Podcast), "transcript".to_string()),
+        errors,
+        attributes,
+        ..Default::default()
+    }
+}
+
+fn analyze_podcast_chapters(chapters: &badpod::podcast::Chapters) -> Node {
+    let mut errors = Vec::new();
+    let mut attributes = Vec::new();
+
+    if let Some(url) = &chapters.url {
+        attributes.push(("url".to_string(), format!("\"{}\"", url)));
+    } else {
+        errors.push(Error::MissingAttribute("url".to_string()));
+    }
+
+    if let Some(type_) = &chapters.type_ {
+        match type_ {
+            badpod::MimeChapters::Other(s) => {
+                errors.push(Error::InvalidAttribute("type".to_string(), s.to_string()));
+            }
+            _ => {
+                attributes.push(("type".to_string(), type_.to_string()));
+            }
+        }
+    } else {
+        errors.push(Error::MissingAttribute("type".to_string()));
+    }
+
+    Node {
+        name: TagName(Some(Namespace::Podcast), "chapters".to_string()),
+        errors,
+        attributes,
+        ..Default::default()
+    }
+}
+
+fn analyze_podcast_soundbite(soundbite: &badpod::podcast::Soundbite) -> Node {
+    let mut errors = Vec::new();
+    let mut attributes = Vec::new();
+
+    match &soundbite.start_time {
+        Some(badpod::Float::Ok(f)) => {
+            attributes.push(("start".to_string(), f.to_string()));
+        }
+        Some(badpod::Float::Other(s)) => {
+            errors.push(Error::InvalidAttribute("start".to_string(), s.to_string()));
+        }
+        None => {
+            errors.push(Error::MissingAttribute("start".to_string()));
+        }
+    }
+
+    match &soundbite.duration {
+        Some(badpod::Float::Ok(f)) => {
+            attributes.push(("duration".to_string(), f.to_string()));
+        }
+        Some(badpod::Float::Other(s)) => {
+            errors.push(Error::InvalidAttribute(
+                "duration".to_string(),
+                s.to_string(),
+            ));
+        }
+        None => {
+            errors.push(Error::MissingAttribute("duration".to_string()));
+        }
+    }
+
+    Node {
+        name: TagName(Some(Namespace::Podcast), "soundbite".to_string()),
+        errors,
+        attributes,
+        ..Default::default()
+    }
+}
+
+fn analyze_podcast_season(season: &badpod::podcast::Season) -> Node {
+    let mut errors = Vec::new();
+    let mut attributes = Vec::new();
+
+    match &season.value {
+        Some(badpod::Integer::Ok(i)) => {
+            attributes.push(("value".to_string(), i.to_string()));
+        }
+        Some(badpod::Integer::Other(s)) => {
+            errors.push(Error::InvalidAttribute("value".to_string(), s.to_string()));
+        }
+        None => {
+            errors.push(Error::MissingAttribute("value".to_string()));
+        }
+    }
+
+    if let Some(name) = &season.name {
+        attributes.push(("name".to_string(), format!("\"{}\"", name)));
+    }
+
+    Node {
+        name: TagName(Some(Namespace::Podcast), "season".to_string()),
+        errors,
+        attributes,
+        ..Default::default()
+    }
+}
+
+fn analyze_podcast_episode(episode: &badpod::podcast::Episode) -> Node {
+    let mut errors = Vec::new();
+    let mut attributes = Vec::new();
+
+    match &episode.value {
+        Some(badpod::Number::Other(s)) => {
+            errors.push(Error::InvalidAttribute("value".to_string(), s.to_string()));
+        }
+        Some(n) => {
+            attributes.push(("value".to_string(), n.to_string()));
+        }
+        None => {
+            errors.push(Error::MissingAttribute("value".to_string()));
+        }
+    }
+
+    if let Some(display) = &episode.display {
+        attributes.push(("display".to_string(), format!("\"{}\"", display)));
+    }
+
+    Node {
+        name: TagName(Some(Namespace::Podcast), "episode".to_string()),
+        errors,
+        attributes,
+        ..Default::default()
+    }
+}
+
+fn analyze_podcast_alternate_enclosure(
+    alternate_enclosure: &badpod::podcast::AlternateEnclosure,
+) -> Node {
+    let mut errors = Vec::new();
+    let mut attributes = Vec::new();
+    let mut children = Vec::new();
+
+    if let Some(type_) = &alternate_enclosure.type_ {
+        match type_ {
+            badpod::MimeEnclosure::Other(s) => {
+                errors.push(Error::InvalidAttribute("type".to_string(), s.to_string()));
+            }
+            _ => {
+                attributes.push(("type".to_string(), type_.to_string()));
+            }
+        }
+    } else {
+        errors.push(Error::MissingAttribute("type".to_string()));
+    }
+
+    if let Some(length) = &alternate_enclosure.length {
+        match length {
+            badpod::Integer::Other(s) => {
+                errors.push(Error::InvalidAttribute("length".to_string(), s.to_string()));
+            }
+            _ => {
+                attributes.push(("length".to_string(), length.to_string()));
+            }
+        }
+    }
+
+    if let Some(bit_rate) = &alternate_enclosure.bit_rate {
+        match bit_rate {
+            badpod::Float::Other(s) => {
+                errors.push(Error::InvalidAttribute(
+                    "bitrate".to_string(),
+                    s.to_string(),
+                ));
+            }
+            _ => {
+                attributes.push(("bitrate".to_string(), bit_rate.to_string()));
+            }
+        }
+    }
+
+    if let Some(height) = &alternate_enclosure.height {
+        match height {
+            badpod::Integer::Other(s) => {
+                errors.push(Error::InvalidAttribute("height".to_string(), s.to_string()));
+            }
+            _ => {
+                attributes.push(("height".to_string(), height.to_string()));
+            }
+        }
+    }
+
+    if let Some(lang) = &alternate_enclosure.language {
+        attributes.push(("lang".to_string(), lang.to_string()));
+    }
+
+    if let Some(title) = &alternate_enclosure.title {
+        attributes.push(("title".to_string(), format!("\"{}\"", title)));
+    }
+
+    if let Some(rel) = &alternate_enclosure.rel {
+        if rel.len() > 32 {
+            errors.push(Error::AttributeExceedsMaxLength(
+                "rel".to_string(),
+                rel.to_string(),
+                32,
+            ));
+        } else {
+            attributes.push(("rel".to_string(), format!("\"{}\"", rel)));
+        }
+    }
+
+    if let Some(default) = &alternate_enclosure.default {
+        match default {
+            badpod::Bool::Other(s) => {
+                errors.push(Error::InvalidAttribute(
+                    "default".to_string(),
+                    s.to_string(),
+                ));
+            }
+            _ => {
+                attributes.push(("default".to_string(), default.to_string()));
+            }
+        }
+    }
+
+    for source in &alternate_enclosure.podcast_source {
+        children.push(analyze_podcast_source(source));
+    }
+    if children.is_empty() {
+        errors.push(Error::MissingChild(TagName(
+            Some(Namespace::Podcast),
+            "source".to_string(),
+        )));
+    }
+
+    for integrity in &alternate_enclosure.podcast_integrity {
+        children.push(analyze_podcast_integrity(integrity));
+    }
+    if alternate_enclosure.podcast_integrity.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "integrity".to_string(),
+        )));
+    }
+
+    Node {
+        name: TagName(Some(Namespace::Podcast), "alternateEnclosure".to_string()),
+        errors,
+        attributes,
+        children,
+    }
+}
+
+fn analyze_podcast_source(source: &badpod::podcast::Source) -> Node {
+    let mut errors = Vec::new();
+    let mut attributes = Vec::new();
+
+    if let Some(uri) = &source.uri {
+        attributes.push(("uri".to_string(), format!("\"{}\"", uri)));
+    } else {
+        errors.push(Error::MissingAttribute("uri".to_string()));
+    }
+
+    if let Some(content_type) = &source.type_ {
+        match content_type {
+            badpod::MimeEnclosure::Other(s) => {
+                errors.push(Error::InvalidAttribute(
+                    "contentType".to_string(),
+                    s.to_string(),
+                ));
+            }
+            _ => {
+                attributes.push(("contentType".to_string(), content_type.to_string()));
+            }
+        }
+    }
+
+    Node {
+        name: TagName(Some(Namespace::Podcast), "source".to_string()),
+        errors,
+        attributes,
+        ..Default::default()
+    }
+}
+
+fn analyze_podcast_integrity(integrity: &badpod::podcast::Integrity) -> Node {
+    let mut errors = Vec::new();
+    let mut attributes = Vec::new();
+
+    match &integrity.type_ {
+        Some(badpod::podcast::IntegrityType::Other(s)) => {
+            errors.push(Error::InvalidAttribute("type".to_string(), s.to_string()));
+        }
+        Some(t) => {
+            attributes.push(("type".to_string(), t.to_string()));
+        }
+        None => {
+            errors.push(Error::MissingAttribute("type".to_string()));
+        }
+    }
+
+    if let Some(value) = &integrity.value {
+        attributes.push(("value_attr".to_string(), format!("\"{}\"", value)));
+    } else {
+        errors.push(Error::MissingAttribute("value_attr".to_string()));
+    }
+
+    Node {
+        name: TagName(Some(Namespace::Podcast), "integrity".to_string()),
+        errors,
+        attributes,
+        ..Default::default()
+    }
+}
+
+fn analyze_podcast_social_interact(social_interact: &badpod::podcast::SocialInteract) -> Node {
+    let mut errors = Vec::new();
+    let mut attributes = Vec::new();
+
+    if let Some(uri) = &social_interact.uri {
+        attributes.push(("uri".to_string(), format!("\"{}\"", uri)));
+    } else {
+        errors.push(Error::MissingAttribute("uri".to_string()));
+    }
+
+    match &social_interact.protocol {
+        Some(badpod::podcast::SocialProtocol::Other(s)) => {
+            errors.push(Error::InvalidAttribute(
+                "protocol".to_string(),
+                s.to_string(),
+            ));
+        }
+        Some(p) => {
+            attributes.push(("protocol".to_string(), p.to_string()));
+        }
+        None => {
+            errors.push(Error::MissingAttribute("protocol".to_string()));
+        }
+    }
+
+    if let Some(account_id) = &social_interact.account_id {
+        attributes.push(("accountId".to_string(), format!("\"{}\"", account_id)));
+    }
+
+    if let Some(account_url) = &social_interact.account_url {
+        attributes.push(("accountUrl".to_string(), format!("\"{}\"", account_url)));
+    }
+
+    if let Some(priority) = &social_interact.priority {
+        match priority {
+            badpod::Integer::Other(s) => {
+                errors.push(Error::InvalidAttribute(
+                    "priority".to_string(),
+                    s.to_string(),
+                ));
+            }
+            _ => {
+                attributes.push(("priority".to_string(), priority.to_string()));
+            }
+        }
+    }
+
+    Node {
+        name: TagName(Some(Namespace::Podcast), "socialInteract".to_string()),
         errors,
         attributes,
         ..Default::default()
