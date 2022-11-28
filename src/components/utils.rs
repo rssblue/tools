@@ -59,8 +59,28 @@ pub fn Info<G: Html>(cx: Scope, info: View<G>) -> View<G> {
     }
 }
 
+#[component(inline_props)]
+pub fn Success<G: Html>(cx: Scope, success: String) -> View<G> {
+    let icon = Icon::CheckCircle
+        .to_string()
+        .replace("{{ class }}", "inline flex-shrink-0 mr-3 w-6 h-6 stroke-2");
+
+    view! {cx,
+    div(
+        class="flex items-center alert alert-success",
+        role="alert",
+        ) {
+        span(
+            dangerously_set_inner_html=icon.as_str(),
+            ){}
+        span(dangerously_set_inner_html=success.as_str()){}
+    }
+    }
+}
+
 pub enum Icon {
     AlertCircle,
+    CheckCircle,
     ChevronRight,
     Info,
     Settings,
@@ -84,6 +104,9 @@ impl std::fmt::Display for Icon {
         let svg = match self {
             Self::AlertCircle => {
                 include_str!("../../assets/svg/feather-icons/alert-circle.svg")
+            }
+            Self::CheckCircle => {
+                include_str!("../../assets/svg/feather-icons/check-circle.svg")
             }
             Self::ChevronRight => {
                 include_str!("../../assets/svg/feather-icons/chevron-right.svg")

@@ -97,6 +97,10 @@
     @apply bg-primary-50 text-primary-700;
   }
 
+  .alert-success {
+    @apply bg-success-100  text-success-600;
+  }
+
   .link {
     @apply underline decoration-primary-500 hover:decoration-transparent hover:text-primary-500 underline-offset-1;
   }

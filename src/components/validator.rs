@@ -155,7 +155,7 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
     let root_node = analyze_rss(&feed);
 
     view! { cx,
-    DisplayNode(node=root_node)
+    DisplayNode(node=root_node, root=true)
     }
 }
 
@@ -314,7 +314,7 @@ impl Node {
 }
 
 #[component(inline_props)]
-fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node) -> View<G> {
+fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node, root: bool) -> View<G> {
     let children = create_signal(cx, node.children.clone());
     let errors = create_signal(cx, node.errors.clone());
     let attributes = create_signal(cx, node.attributes.clone());
@@ -326,6 +326,16 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node) -> View<G> {
     };
 
     view! { cx,
+    (if !have_nested_errors && root {
+        view! { cx,
+        div(class="mb-5") {
+            utils::Success(success="Our analysis has not found any errors in the podcast namespace tags.".to_string())
+        }
+        }
+    } else {
+        view! { cx,
+        }
+    })
     details(open=have_nested_errors) {
         summary(class=name_cls) {
             code(class="font-bold") { "<"(node.name)">" }
@@ -352,7 +362,7 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node) -> View<G> {
                 Indexed(
                     iterable=children,
                     view=|cx, x| view! { cx,
-                    DisplayNode(node=x)
+                    DisplayNode(node=x, root=false)
                     },
                     )
             }

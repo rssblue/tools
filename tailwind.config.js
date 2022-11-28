@@ -44,6 +44,7 @@ module.exports = {
           800: "#64151D",
           900: "#320B0E",
       },
+      success: colors.teal,
       white: colors.white,
       gray: colors.gray,
       transparent: "transparent",
