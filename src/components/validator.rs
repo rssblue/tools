@@ -242,9 +242,7 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
         }
         Error::Custom(msg) => {
             view! { cx,
-            div(class="text-red-500") {
-                (msg)
-            }
+            div(class="text-red-500", dangerously_set_inner_html=msg.as_str()) {}
             }
         }
     }
@@ -483,6 +481,38 @@ fn analyze_item(item: &badpod::Item) -> Node {
             Some(Namespace::Podcast),
             "value".to_string(),
         )));
+    }
+
+    for person in &item.podcast_person {
+        children.push(analyze_podcast_person(person));
+    }
+
+    for location in &item.podcast_location {
+        children.push(analyze_podcast_location(location));
+    }
+    if item.podcast_location.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "location".to_string(),
+        )));
+    }
+
+    for images in &item.podcast_images {
+        children.push(analyze_podcast_images(images));
+    }
+    if item.podcast_images.len() > 1 {
+        errors.push(Error::MultipleChildren(TagName(
+            Some(Namespace::Podcast),
+            "images".to_string(),
+        )));
+    }
+
+    for txt in &item.podcast_txt {
+        children.push(analyze_podcast_txt(txt));
+    }
+
+    for transcript in &item.podcast_transcript {
+        children.push(analyze_podcast_transcript(transcript));
     }
 
     Node {
@@ -1067,6 +1097,68 @@ fn analyze_podcast_images(images: &badpod::podcast::Images) -> Node {
 
     Node {
         name: TagName(Some(Namespace::Podcast), "images".to_string()),
+        attributes,
+        ..Default::default()
+    }
+}
+
+fn analyze_podcast_transcript(transcript: &badpod::podcast::Transcript) -> Node {
+    let mut errors = Vec::new();
+    let mut attributes = Vec::new();
+
+    if let Some(url) = &transcript.url {
+        attributes.push(("url".to_string(), format!("\"{}\"", url)));
+    } else {
+        errors.push(Error::MissingAttribute("url".to_string()));
+    }
+
+    if let Some(type_) = &transcript.type_ {
+        match type_ {
+            badpod::MimeTranscript::ApplicationSrt => {
+                errors.push(Error::Custom(
+                    "\"<code>application/srt</code>\" is not a valid mime type. <a class=\"link\" href=\"https://github.com/Podcastindex-org/podcast-namespace/pull/331\" target=\"_blank\" rel=\"noopener noreferrer\">On February 3, 2022</a>, the recognized alternative for SubRip files in the podcast namespace specification became \"<code>application/x-subrip</code>\". However, keep in mind that although podcast players like Podverse and Podcast Addict have updated their codebases, some other apps may still only recognize \"<code>application/srt</code>\" at this time."
+                    .to_string(),
+                ));
+            }
+            badpod::MimeTranscript::Other(s) => {
+                errors.push(Error::InvalidAttribute("type".to_string(), s.to_string()));
+            }
+            _ => {
+                attributes.push(("type".to_string(), type_.to_string()));
+            }
+        }
+    } else {
+        errors.push(Error::MissingAttribute("type".to_string()));
+    }
+
+    if let Some(language) = &transcript.language {
+        match language {
+            badpod::Language::Other(s) => {
+                errors.push(Error::InvalidAttribute(
+                    "language".to_string(),
+                    s.to_string(),
+                ));
+            }
+            _ => {
+                attributes.push(("language".to_string(), language.to_string()));
+            }
+        }
+    }
+
+    if let Some(rel) = &transcript.rel {
+        match rel {
+            badpod::podcast::TranscriptRel::Other(s) => {
+                errors.push(Error::InvalidAttribute("rel".to_string(), s.to_string()));
+            }
+            _ => {
+                attributes.push(("rel".to_string(), rel.to_string()));
+            }
+        }
+    }
+
+    Node {
+        name: TagName(Some(Namespace::Podcast), "transcript".to_string()),
+        errors,
         attributes,
         ..Default::default()
     }
