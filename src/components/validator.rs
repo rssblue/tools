@@ -33,8 +33,24 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     view! { cx,
     crate::components::ToolsBreadcrumbs(title="Validator")
 
-        form(class="mb-4") {
-            // Prevent submission with "Enter".
+        h1(class="mb-3") { "Podcast Validator" }
+    h2(class="mt-3 text-gray-500") { "Make sure your Podcasting 2.0 feed is valid." }
+    p(class="mt-7") {
+        a(class="link", href="https://podcastindex.org/namespace/1.0", target="_blank", rel="noopener noreferrer") { "Podcast namespace initiative" }
+        " is a community effort to create modern podcasting standards. You can use this tool to check that the elements of your feed are valid."
+    }
+
+    p(class="mb-7") {
+        "This validator only checks the podcast namespace elements and only analyzes the text content of the feed. For other namespaces and media checks you may try "
+        a(class="link", href="https://www.castfeedvalidator.com/", target="_blank", rel="noopener noreferrer") { "Cast Feed Validator" }
+        " by Blubrry or "
+        a(class="link", href="https://podba.se/validate/", target="_blank", rel="noopener noreferrer") { "podba.se validator" }
+        " by Podbase."
+
+    }
+
+    form(class="mb-4") {
+        // Prevent submission with "Enter".
             button(
                 type="submit",
                 disabled=true,
