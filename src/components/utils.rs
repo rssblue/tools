@@ -68,6 +68,17 @@ pub enum Icon {
     XCircle,
 }
 
+#[component(inline_props)]
+pub fn IconComponent<G: Html>(cx: Scope, icon: Icon, class: String) -> View<G> {
+    let icon = icon.to_string().replace("{{ class }}", class.as_str());
+
+    view! {cx,
+    span(
+        dangerously_set_inner_html=icon.as_str(),
+        ){}
+    }
+}
+
 impl std::fmt::Display for Icon {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let svg = match self {

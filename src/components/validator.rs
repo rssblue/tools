@@ -1,4 +1,5 @@
 use crate::components::utils;
+use sycamore::builder::prelude::*;
 use sycamore::prelude::*;
 use sycamore::suspense::{use_transition, Suspense};
 use url::Url;
@@ -32,30 +33,30 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     view! { cx,
     crate::components::ToolsBreadcrumbs(title="Validator")
 
-    form(class="mb-4") {
-        // Prevent submission with "Enter".
-        button(
-            type="submit",
-            disabled=true,
-            style="display: none",
-            aria-hidden="true"
-            ){}
-        div{
-            label(for="url") { "Feed's URL" }
-            div(class="grid grid-cols-4") {
-                div(class="flex flex-row col-span-4 md:col-span-3") {
-                input(
-                    class=format!("input-text-base rounded-t-lg md:rounded-l-lg md:rounded-r-none text-ellipsis z-10 {}", input_cls.get()),
-                    spellcheck=false,
-                    autofocus=true,
-                    type="url",
-                    id="url",
-                    placeholder="https://example.com/feed.xml",
-                    autocomplete="off",
-                    disabled=*fetching_data.get(),
-                    bind:value=url_str,
-                    )
-                }
+        form(class="mb-4") {
+            // Prevent submission with "Enter".
+            button(
+                type="submit",
+                disabled=true,
+                style="display: none",
+                aria-hidden="true"
+                ){}
+            div{
+                label(for="url") { "Feed's URL" }
+                div(class="grid grid-cols-4") {
+                    div(class="flex flex-row col-span-4 md:col-span-3") {
+                        input(
+                            class=format!("input-text-base rounded-t-lg md:rounded-l-lg md:rounded-r-none text-ellipsis z-10 {}", input_cls.get()),
+                            spellcheck=false,
+                            autofocus=true,
+                            type="url",
+                            id="url",
+                            placeholder="https://example.com/feed.xml",
+                            autocomplete="off",
+                            disabled=*fetching_data.get(),
+                            bind:value=url_str,
+                            )
+                    }
                     button(
                         class=format!("btn-base btn-primary rounded-b-lg md:rounded-r-lg md:rounded-l-none col-span-4 md:col-span-1"),
                         type="button",
@@ -68,20 +69,20 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
                             "Test feed"
                         })
                     }
-            }
+                }
 
+            }
         }
-    }
 
     (if *show_results.get() {
         view!{cx,
-            Suspense(fallback=view! { cx, }) {
-                Validate(url=url_str.get().to_string())
-            }
+        Suspense(fallback=view! { cx, }) {
+            Validate(url=url_str.get().to_string())
+        }
         }
     } else {
         view! { cx,
-            }
+        }
     })
 
 
@@ -189,7 +190,7 @@ impl std::fmt::Display for Error {
                 }
             }
             Error::MissingChild(x) => write!(f, "Missing child: {}", x),
-            Error::MultipleChildren(x) => write!(f, "Multiple children: {}", x),
+            Error::MultipleChildren(x) => write!(f, "Multiple children: &lt;{}&gt;", x),
             Error::Custom(x) => write!(f, "{}", x),
         }
     }
@@ -227,38 +228,44 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node) -> View<G> {
     let errors = create_signal(cx, node.errors.clone());
     let attributes = create_signal(cx, node.attributes.clone());
     let have_nested_errors = node.descendants_have_errors();
+    let name_cls = if have_nested_errors {
+        "text-danger-500"
+    } else {
+        ""
+    };
 
     view! { cx,
-    details(open=true) {
-        summary(class="font-mono text-lg font-bold") {
+    details(open=have_nested_errors) {
+        summary(class=format!("font-mono text-lg font-bold {name_cls}")) {
             "<"(node.name)">"
-                (if have_nested_errors {
-                    view! {cx, span(class="text-danger-500") { " ✗" } }
-                } else {
-                    view! {cx, }
-                })
         }
-        div(class="pl-3 md:pl-5") {
-            Indexed(
-                iterable=children,
-                view=|cx, x| view! { cx,
-                DisplayNode(node=x)
-                },
-                )
-            Indexed(
-                iterable=attributes,
-                view=|cx, x| view! { cx,
-                div(class="font-mono text-sm") {
-                    span(class="font-bold") { (x.0) } "=" (x.1)
-                }
-                },
-                )
-            Indexed(
-                iterable=errors,
-                view=|cx, x| view! { cx,
-                utils::Error(error=x.to_string())
-                },
-                )
+        div(class="pl-1") {
+            div(class="pl-2 md:pl-4 border-l-2 border-gray-200") {
+                Indexed(
+                    iterable=children,
+                    view=|cx, x| view! { cx,
+                    DisplayNode(node=x)
+                    },
+                    )
+                    div(class="grid grid-cols-1  text-sm") {
+                        ul(class="text-sm my-0") {
+                            Indexed(
+                                iterable=attributes,
+                                view=|cx, x| view! { cx,
+                                li(class="font-mono my-0") {
+                                    span(class="font-bold") { (x.0) } "=" (x.1)
+                                }
+                                },
+                                )
+                                Indexed(
+                                    iterable=errors,
+                                    view=|cx, x| view! { cx,
+                                    li(class="my-0 marker:text-danger-500 text-danger-500") { (x) }
+                                    },
+                                    )
+                        }
+                    }
+            }
         }
     }
     }
