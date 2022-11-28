@@ -5,6 +5,18 @@ use url::Url;
 
 #[component]
 pub fn Validator<G: Html>(cx: Scope) -> View<G> {
+    let mut url_in_url = String::new();
+    // Get 'op3-url' query parameter.
+    if let Some(window) = web_sys::window() {
+        if let Ok(href) = window.location().href() {
+            if let Ok(url) = web_sys::Url::new(&href) {
+                if let Some(param) = url.search_params().get("url") {
+                    url_in_url = param;
+                }
+            }
+        }
+    }
+
     let input_cls = create_signal(cx, String::new());
     let fetching_data = create_signal(cx, false);
     let url_str = create_signal(cx, String::new());
@@ -40,6 +52,11 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     });
 
     create_effect(cx, move || fetching_data.set(transition.is_pending()));
+
+    if !url_in_url.is_empty() {
+        url_str.set(url_in_url);
+        fetch_feed(true);
+    }
 
     view! { cx,
     crate::components::ToolsBreadcrumbs(title="Validator")
