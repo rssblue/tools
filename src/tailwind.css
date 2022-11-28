@@ -32,7 +32,7 @@
   }
 
   dialog {
-    @apply bg-white rounded-xl max-w-md sm:w-96 shadow-lg p-5 backdrop:bg-primary-800/50 z-20;
+    @apply bg-white rounded-xl max-w-md w-72 sm:w-80 md:w-96 shadow-lg p-5 backdrop:bg-primary-800/50 z-20;
   }
 
   code {
