@@ -107,14 +107,14 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     dialog(id="settings") {
         h2(class="mt-0") { "Settings" }
 
-        p {
+        p(class="text-gray-700") {
             "You can try using a proxy to fetch the feeds. One option is "
                 utils::Link(url=CORS_PROXY_URL.to_string(), text=CORS_PROXY_URL.to_string(), new_tab=true)
-                ". You can go to this site to get access to the proxy, after which you should post this URL in the field below."
+                ". You can go to this site to get access to the proxy, after which you should copy and paste this URL in the field below."
 
         }
 
-        label(for="proxy") {
+        label(class="text-gray-700", for="proxy") {
             "Proxy"
         }
         input(
