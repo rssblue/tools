@@ -215,7 +215,7 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, proxy: String) ->
             if e.is_request() {
                 return view! {cx,
                 utils::AlertHTML(type_=utils::AlertType::Danger, msg=view! {cx,
-                    "Could not make the request. You can try setting up a proxy in the settings."
+                    "Could not make the request. This could be due to a CORS error, so you can try setting up a proxy in the settings."
                         details {
                             summary { "Original error" }
                             p { (e) }
