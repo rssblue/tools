@@ -157,41 +157,80 @@ enum Error {
     Custom(String),
 }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::MissingAttribute(attr) => {
-                if attr == "value" {
-                    write!(f, "Missing value")
-                } else {
-                    write!(f, "Missing attribute \"{}\"", attr)
+#[component(inline_props)]
+pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
+    match error {
+        Error::MissingAttribute(attr) => {
+            if attr == "value" {
+                view! { cx,
+                div(class="text-red-500") {
+                    "Missing value"
+                }
+                }
+            } else {
+                view! { cx,
+                div(class="text-red-500") {
+                    "Missing attribute "
+                        code(class="attr") { (attr) }
+                }
                 }
             }
-            Error::InvalidAttribute(attr, val) => {
-                if attr == "value" {
-                    write!(f, "Invalid value: \"{}\"", val)
-                } else {
-                    write!(f, "Invalid attribute: {}=\"{}\"", attr, val)
+        }
+        Error::InvalidAttribute(attr, value) => {
+            if attr == "value" {
+                view! { cx,
+                div(class="text-red-500") {
+                    "Invalid value "
+                        code { "\"" (value) "\"" }
+                }
+                }
+            } else {
+                view! { cx,
+                div(class="text-red-500") {
+                    "Attribute "
+                        code(class="attr") { (attr) }
+                        " has invalid value "
+                        code { "\"" (value) "\"" }
+                }
                 }
             }
-            Error::AttributeExceedsMaxLength(attr, val, max) => {
-                if attr == "value" {
-                    write!(
-                        f,
-                        "Value exceeds maximum length: \"{}\" (max: {})",
-                        val, max
-                    )
-                } else {
-                    write!(
-                        f,
-                        "Attribute exceeds maximum length: {}=\"{}\" (max: {})",
-                        attr, val, max
-                    )
-                }
+        }
+        Error::MissingChild(tag_name) => {
+            view! { cx,
+            div(class="text-red-500") {
+                "Missing child "
+                    code { "<" (tag_name) ">" }
             }
-            Error::MissingChild(x) => write!(f, "Missing child: {}", x),
-            Error::MultipleChildren(x) => write!(f, "Multiple children: &lt;{}&gt;", x),
-            Error::Custom(x) => write!(f, "{}", x),
+            }
+        }
+        Error::MultipleChildren(tag_name) => {
+            view! { cx,
+            div(class="text-red-500") {
+                "Only one child "
+                    code { "<" (tag_name) ">" }
+                " is allowed"
+            }
+            }
+        }
+        Error::AttributeExceedsMaxLength(attr, value, max_len) => {
+            view! { cx,
+            div(class="text-red-500") {
+                "Attribute "
+                    code(class="attr") { (attr) }
+                " with value "
+                    code { "\"" (value) "\"" }
+                " exceeds maximum length of "
+                    (max_len)
+                    " characters"
+            }
+            }
+        }
+        Error::Custom(msg) => {
+            view! { cx,
+            div(class="text-red-500") {
+                (msg)
+            }
+            }
         }
     }
 }
@@ -236,8 +275,8 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node) -> View<G> {
 
     view! { cx,
     details(open=have_nested_errors) {
-        summary(class=format!("font-mono text-lg font-bold {name_cls}")) {
-            "<"(node.name)">"
+        summary(class=format!("text-lg {name_cls}")) {
+            code(class="font-bold") { "<"(node.name)">" }
         }
         div(class="pl-1") {
             div(class="pl-2 md:pl-4 border-l-2 border-gray-200") {
@@ -252,15 +291,15 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node) -> View<G> {
                             Indexed(
                                 iterable=attributes,
                                 view=|cx, x| view! { cx,
-                                li(class="font-mono my-0") {
-                                    span(class="font-bold") { (x.0) } "=" (x.1)
+                                li(class="my-0") {
+                                    code { span(class="attr") { (x.0) }  "=" (x.1) }
                                 }
                                 },
                                 )
                                 Indexed(
                                     iterable=errors,
                                     view=|cx, x| view! { cx,
-                                    li(class="my-0 marker:text-danger-500 text-danger-500") { (x) }
+                                    li(class="my-0 marker:text-danger-500 text-danger-500") { DisplayError(error=x) }
                                     },
                                     )
                         }

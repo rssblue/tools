@@ -34,6 +34,10 @@
   dialog {
     @apply bg-white rounded-xl max-w-md sm:w-96 shadow-lg p-5 backdrop:bg-primary-800/50 z-20;
   }
+
+  code {
+    @apply font-mono;
+  }
 }
 
 @layer components {
@@ -95,6 +99,10 @@
 
   .link {
     @apply underline decoration-primary-500 hover:decoration-transparent hover:text-primary-500 underline-offset-1;
+  }
+
+  .attr {
+    @apply font-bold;
   }
 
   #my-table:not(.multiple) tbody tr:nth-of-type(2n + 1) td {
