@@ -568,13 +568,13 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
             div(class="grid grid-cols-4") {
                 div(class="flex flex-row col-span-4 md:col-span-3") {
                 div(
-                    class="block w-full border border-gray-300 pl-3 pr-1 rounded-tl-lg md:rounded-l-lg w-auto flex items-center bg-gray-100 text-gray-800",
+                    class="block w-full border border-gray-300 pl-3 pr-1 rounded-tl-xl md:rounded-l-xl w-auto flex items-center bg-gray-100 text-gray-800",
                     disabled=true,
                     ) {
                     (OP3_PREFIX)
                 }
                 input(
-                    class=format!("input-text-base rounded-tr-lg md:rounded-none md:rounded-r-none pl-1 text-ellipsis z-10 {}", input_cls.get()),
+                    class=format!("input-text-base rounded-tr-xl md:rounded-none md:rounded-r-none pl-1 text-ellipsis z-10 {}", input_cls.get()),
                     spellcheck=false,
                     autofocus=true,
                     type="url",
@@ -586,7 +586,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
                     )
                 }
                     button(
-                        class=format!("btn-base btn-primary rounded-b-lg md:rounded-r-lg md:rounded-l-none col-span-4 md:col-span-1"),
+                        class=format!("btn-base btn-primary rounded-b-xl md:rounded-r-xl md:rounded-l-none col-span-4 md:col-span-1"),
                         type="button",
                         on:click=move |_| update(true),
                         disabled=*fetching_data.get(),

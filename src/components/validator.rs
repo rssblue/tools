@@ -61,7 +61,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
             div(class="grid grid-cols-4") {
                 div(class="flex flex-row col-span-4 md:col-span-3") {
                     input(
-                        class=format!("input-text-base rounded-t-lg md:rounded-l-lg md:rounded-r-none text-ellipsis z-10 {}", input_cls.get()),
+                        class=format!("input-text-base rounded-t-xl md:rounded-l-xl md:rounded-r-none text-ellipsis z-10 {}", input_cls.get()),
                         spellcheck=false,
                         autofocus=true,
                         type="url",
@@ -73,7 +73,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
                         )
                 }
                 button(
-                    class=format!("btn-base btn-primary rounded-b-lg md:rounded-r-lg md:rounded-l-none col-span-4 md:col-span-1"),
+                    class=format!("btn-base btn-primary rounded-b-xl md:rounded-r-xl md:rounded-l-none col-span-4 md:col-span-1"),
                     type="button",
                     on:click=move |_| fetch_feed(true),
                     disabled=*fetching_data.get(),
