@@ -144,7 +144,6 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, proxy: String) ->
         format!("{}{}", proxy, url)
     };
 
-    let client = reqwest_wasm::Client::new();
     let url = match Url::parse(&url) {
         Ok(url) => url,
         Err(e) => {
@@ -153,7 +152,7 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, proxy: String) ->
             }
         }
     };
-    let resp = client.get(url).send().await;
+    let resp = reqwest_wasm::get(url).await;
 
     let resp = match resp {
         Ok(x) => x,
