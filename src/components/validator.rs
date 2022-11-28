@@ -10,6 +10,18 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     let url_str = create_signal(cx, String::new());
     let transition = use_transition(cx);
     let show_results = create_signal(cx, false);
+    // Use CORS proxy on localhost to avoid CORS issues.
+    let proxy = create_signal(cx, String::new());
+
+    if let Some(window) = web_sys::window() {
+        if let Ok(Some(storage)) = window.local_storage() {
+            if let Ok(Some(proxy_)) = storage.get_item("validator-proxy") {
+                proxy.set(proxy_);
+            } else {
+                proxy.set("".to_string());
+            }
+        }
+    }
 
     let fetch_feed = move |x| transition.start(move || fetching_data.set(x), || ());
 
@@ -92,7 +104,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     (if *show_results.get() {
         view!{cx,
         Suspense(fallback=view! { cx, }) {
-            Validate(url=url_str.get().to_string())
+            Validate(url=url_str.get().to_string(), proxy=proxy.get().to_string())
         }
         }
     } else {
@@ -105,8 +117,13 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
 }
 
 #[component(inline_props)]
-pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
-    // Use CORS proxy to avoid CORS issues.
+pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, proxy: String) -> View<G> {
+    let url = if proxy.is_empty() {
+        url
+    } else {
+        format!("{}{}", proxy, url)
+    };
+
     let client = reqwest_wasm::Client::new();
     let url = match Url::parse(&url) {
         Ok(url) => url,
@@ -116,8 +133,7 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
             }
         }
     };
-    let url = format!("https://cors-anywhere.herokuapp.com/{}", url.as_str());
-    let resp = client.get(&url).send().await;
+    let resp = client.get(url).send().await;
 
     let resp = match resp {
         Ok(x) => x,
