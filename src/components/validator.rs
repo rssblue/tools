@@ -633,6 +633,15 @@ fn analyze_podcast_live_item(item: &badpod::podcast::LiveItem) -> Node {
         None => errors.push(Error::MissingAttribute("end".to_string())),
     }
 
+    for title in &item.title {
+        children.push(analyze_title(title.to_string()));
+    }
+    match item.title.len() {
+        0 => errors.push(Error::MissingChild(TagName(None, "title".to_string()))),
+        1 => {}
+        _ => errors.push(Error::MultipleChildren(TagName(None, "title".to_string()))),
+    }
+
     for content_link in &item.content_link {
         children.push(analyze_podcast_content_link(content_link));
     }
@@ -641,15 +650,6 @@ fn analyze_podcast_live_item(item: &badpod::podcast::LiveItem) -> Node {
             Some(Namespace::Podcast),
             "contentLink".to_string(),
         )));
-    }
-
-    for title in &item.title {
-        children.push(analyze_title(title.to_string()));
-    }
-    match item.title.len() {
-        0 => errors.push(Error::MissingChild(TagName(None, "title".to_string()))),
-        1 => {}
-        _ => errors.push(Error::MultipleChildren(TagName(None, "title".to_string()))),
     }
 
     for v4v_value in &item.podcast_value {
