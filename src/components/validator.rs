@@ -112,7 +112,7 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         Ok(url) => url,
         Err(e) => {
             return view! { cx,
-            utils::Error(error=format!("Could not parse the URL ({e})"))
+            utils::Alert(type_=utils::AlertType::Danger, msg=format!("Could not parse the URL ({e})"))
             }
         }
     };
@@ -123,14 +123,14 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         Ok(x) => x,
         Err(e) => {
             return view! {cx,
-            utils::Error(error=format!("Could not fetch the feed ({e})"))
+            utils::Alert(type_=utils::AlertType::Danger, msg=format!("Could not fetch the feed ({e})"))
             }
         }
     };
 
     if !resp.status().is_success() {
         return view! {cx,
-        utils::Error(error=format!("Could not fetch the feed ({})", resp.status()))
+        utils::Alert(type_=utils::AlertType::Danger, msg=format!("Could not fetch the feed ({})", resp.status()))
         };
     }
 
@@ -138,7 +138,7 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         Ok(x) => x,
         Err(e) => {
             return view! {cx,
-            utils::Error(error=format!("Could not fetch the feed ({e})"))
+            utils::Alert(type_=utils::AlertType::Danger, msg=format!("Could not fetch the feed ({e})"))
             }
         }
     };
@@ -147,7 +147,7 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         Ok(x) => x,
         Err(e) => {
             return view! {cx,
-            utils::Error(error=format!("Could not parse the feed ({e})"))
+            utils::Alert(type_=utils::AlertType::Danger, msg=format!("Could not parse the feed ({e})"))
             }
         }
     };
@@ -329,7 +329,7 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node, root: bool) -> View<G> {
     (if !have_nested_errors && root {
         view! { cx,
         div(class="mb-5") {
-            utils::Success(success="Our analysis has not found any errors in the podcast namespace tags.".to_string())
+            utils::Alert(type_=utils::AlertType::Success, msg="Our analysis has not found any errors in the podcast namespace tags.".to_string())
         }
         }
     } else {

@@ -274,7 +274,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String, token: String) -
         Ok(url) => url,
         Err(_) => {
             return view! {cx,
-            utils::Warning(warning=format!("Could not parse the URL."))
+            utils::Alert(type_=utils::AlertType::Warning, msg=format!("Could not parse the URL."))
             }
         }
     };
@@ -302,7 +302,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String, token: String) -
             Ok(rows_) => rows.extend(rows_),
             Err(e) => {
                 return view! {cx,
-                utils::Warning(warning=format!("Error: {e}"))
+                utils::Alert(type_=utils::AlertType::Warning, msg=format!("Error: {e}"))
 
                 };
             }
@@ -316,7 +316,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String, token: String) -
 
     if rows.is_empty() {
         return view! { cx,
-            utils::Warning(warning=format!("No data found for the URL. If the file is new (or has been only recently routed through OP3), reliable data might take some time to show up."))
+            utils::Alert(type_=utils::AlertType::Warning, msg=format!("No data found for the URL. If the file is new (or has been only recently routed through OP3), reliable data might take some time to show up."))
         };
     }
 
@@ -368,7 +368,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String, token: String) -
 
     view! { cx,
     div(class="my-6") {
-        utils::Info(info=info)
+        utils::AlertHTML(type_=utils::AlertType::Info, msg=info)
     }
 
     h2 { "Continents" }
@@ -514,7 +514,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     (if op3_url_wrong_url {
         view!{ cx,
         div(class="my-4") {
-            utils::Warning(warning=format!("URL query parameter <code class='font-mono'>op3-url</code> should start with “{OP3_PREFIX}”."))
+            utils::Alert(type_=utils::AlertType::Warning, msg=format!("URL query parameter <code class='font-mono'>op3-url</code> should start with “{OP3_PREFIX}”."))
         }}
     } else {
         view!{ cx, }

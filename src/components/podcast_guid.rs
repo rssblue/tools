@@ -64,7 +64,7 @@ pub fn PodcastGuid<G: Html>(cx: Scope) -> View<G> {
             view! { cx,
                 Indexed(
                     iterable=warnings,
-                    view=|cx, warning| view! { cx, utils::Warning(warning=warning)}
+                    view=|cx, warning| view! { cx, utils::Alert(type_=utils::AlertType::Warning, msg=warning)}
                     )
             }
         } else {
