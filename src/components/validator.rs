@@ -1347,7 +1347,7 @@ fn analyze_podcast_transcript(transcript: &badpod::podcast::Transcript) -> Node 
         match type_ {
             badpod::MimeTranscript::ApplicationSrt => {
                 errors.push(Error::Custom(
-                    "\"<code>application/srt</code>\" is not a valid mime type. <a class=\"link\" href=\"https://github.com/Podcastindex-org/podcast-namespace/pull/331\" target=\"_blank\" rel=\"noopener noreferrer\">On February 3, 2022</a>, the recognized alternative for SubRip files in the podcast namespace specification became \"<code>application/x-subrip</code>\". However, keep in mind that although podcast players like Podverse and Podcast Addict have updated their codebases, some other apps may still only recognize \"<code>application/srt</code>\" at this time."
+                    "\"<code>application/srt</code>\" in attribute <code class=\"font-bold\">type</code> is not a valid mime type. <a class=\"link\" href=\"https://github.com/Podcastindex-org/podcast-namespace/pull/331\" target=\"_blank\" rel=\"noopener noreferrer\">On February 3, 2022</a>, the recognized alternative for SubRip files in the podcast namespace specification became \"<code>application/x-subrip</code>\". However, keep in mind that although podcast players like Podverse and Podcast Addict have updated their codebases, some other apps may still only recognize \"<code>application/srt</code>\" at this time."
                     .to_string(),
                 ));
             }
