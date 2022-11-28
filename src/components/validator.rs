@@ -134,11 +134,25 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String) -> View<G> {
         };
     }
 
-    let text = resp.text().await;
+    let text = match resp.text().await {
+        Ok(x) => x,
+        Err(e) => {
+            return view! {cx,
+            utils::Error(error=format!("Could not fetch the feed ({e})"))
+            }
+        }
+    };
 
-    let feed = badpod::from_str(&text.unwrap());
+    let feed = match badpod::from_str(&text) {
+        Ok(x) => x,
+        Err(e) => {
+            return view! {cx,
+            utils::Error(error=format!("Could not parse the feed ({e})"))
+            }
+        }
+    };
 
-    let root_node = analyze_rss(&feed.unwrap());
+    let root_node = analyze_rss(&feed);
 
     view! { cx,
     DisplayNode(node=root_node)
