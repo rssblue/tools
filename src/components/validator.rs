@@ -52,7 +52,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
 
     let fetch_feed = move |x| transition.start(move || fetching_data.set(x), || ());
 
-    const cors_proxy_url: &str = "https://cors-anywhere.herokuapp.com/";
+    const CORS_PROXY_URL: &str = "https://cors-anywhere.herokuapp.com/";
 
     create_effect(cx, move || {
         if *fetching_data.get() {
@@ -109,7 +109,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
 
         p {
             "You can try using a proxy to fetch the feeds. One option is "
-                utils::Link(url=cors_proxy_url.to_string(), text=cors_proxy_url.to_string(), new_tab=true)
+                utils::Link(url=CORS_PROXY_URL.to_string(), text=CORS_PROXY_URL.to_string(), new_tab=true)
                 ". You can go to this site to get access to the proxy, after which you should post this URL in the field below."
 
         }
@@ -121,7 +121,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
             id="token",
             type="url",
             class="input-text",
-            placeholder=cors_proxy_url,
+            placeholder=CORS_PROXY_URL,
             bind:value=proxy,
             )
 
