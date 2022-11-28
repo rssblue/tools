@@ -77,7 +77,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
 
     view! { cx,
     div(class="flex flex-row items-center") {
-        crate::components::ToolsBreadcrumbs(title="Plot OP3")
+        crate::components::ToolsBreadcrumbs(title="Podcast Validator")
             button(
                 class="ml-auto text-gray-400 hover:text-gray-600",
                 dangerously_set_inner_html=utils::Icon::Settings.to_string().replace("{{ class }}", "h-5 stroke-2").as_str(),
