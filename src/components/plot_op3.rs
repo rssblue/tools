@@ -481,33 +481,15 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     h1(class="mb-3") { "Plot OP3" }
     h2(class="mt-3 text-gray-500") { "Visualize requests for a podcast media file." }
     p(class="mt-7") {
-            a(
-                class="link",
-                href="https://op3.dev",
-                target="_blank",
-                rel="noopener",
-                title="Opens in a new tab",
-                ) { "OP3" }
+        utils::Link(url="https://op3.dev".to_string(), text="OP3".to_string(), new_tab=true)
         " is an open-source analytics service. A podcaster can route requests to their show's media files through OP3, and the service will record all those requests. Consider "
-            a(
-                class="link",
-                href="https://github.com/skymethod/op3#commitment-to-sustainable-development",
-                target="_blank",
-                rel="noopener",
-                title="Opens in a new tab",
-                ) { "supporting OP3" }
+        utils::Link(url="https://github.com/skymethod/op3#commitment-to-sustainable-development".to_string(), text="supporting OP3".to_string(), new_tab=true)
         "!"
     }
 
     p(class="mb-7") {
         "This tool allows to visualize the countries of origin for your typical listeners. It is being actively developed and we welcome all feedback! "
-            a(
-                class="link",
-                href="https://github.com/rssblue/tools/issues",
-                target="_blank",
-                rel="noopener",
-                title="Opens in a new tab",
-                ) { "Let us know" }
+        utils::Link(url="https://github.com/rssblue/tools/issues".to_string(), text="Let us know".to_string(), new_tab=true)
         " what kinds of data you would like to see visualized."
     }
 
@@ -527,13 +509,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
             "OP3 API token"
                 small(class="text-gray-500") {
                     " (get one "
-                        a(
-                            class="link decoration-primary-200",
-                            href="https://op3.dev/api/keys",
-                            target="_blank",
-                            rel="noopener",
-                            title="Opens in a new tab",
-                            ) { "here" }
+                        utils::Link(url="https://op3.dev/api/keys".to_string(), text="here".to_string(), new_tab=true)
                     ")"
                 }
         }

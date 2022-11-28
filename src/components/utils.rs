@@ -79,3 +79,21 @@ impl std::fmt::Display for Icon {
         write!(f, "{svg}")
     }
 }
+
+#[component(inline_props)]
+pub fn Link<G: Html>(cx: Scope, url: String, text: String, new_tab: bool) -> View<G> {
+    let target = if new_tab { "_blank" } else { "" };
+    let rel = if new_tab { "noopener noreferrer" } else { "" };
+    let title = if new_tab { "Opens in a new tab" } else { "" };
+    view! {cx,
+        a(
+            class="link",
+            href=url,
+            target=target,
+            rel=rel,
+            title=title,
+            ) {
+            (text)
+        }
+    }
+}

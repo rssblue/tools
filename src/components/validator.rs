@@ -47,17 +47,16 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
         h1(class="mb-3") { "Podcast Validator" }
     h2(class="mt-3 text-gray-500") { "Make sure your Podcasting 2.0 feed is valid." }
     p(class="mt-7") {
-        a(class="link", href="https://podcastindex.org/namespace/1.0", target="_blank", rel="noopener noreferrer") { "Podcast namespace initiative" }
-        " is a community effort to create modern podcasting standards. You can use this tool to check that the elements of your feed are valid."
+        utils::Link(url="https://podcastindex.org/namespace/1.0".to_string(), text="Podcast namespace initiative".to_string(), new_tab=true)
+        " is a community effort to create modern podcasting standards. If you utilize any of the new XML elements, this tool will check for any mistakes in your feed."
     }
 
     p(class="mb-7") {
-        "This validator only checks the podcast namespace elements and only analyzes the text content of the feed. For other namespaces and media checks you may try "
-            a(class="link", href="https://www.castfeedvalidator.com/", target="_blank", rel="noopener noreferrer") { "Cast Feed Validator" }
+        "This validator only checks the podcast namespace elements and only analyzes the text content of the feed. For other namespaces and media checks you can try "
+        utils::Link(url="https://www.castfeedvalidator.com/".to_string(), text="Cast Feed Validator".to_string(), new_tab=true)
         " by Blubrry or "
-            a(class="link", href="https://podba.se/validate/", target="_blank", rel="noopener noreferrer") { "podba.se validator" }
+        utils::Link(url="https://podba.se/validate/".to_string(), text="podba.se validator".to_string(), new_tab=true)
         " by Podbase."
-
     }
 
     form(class="mb-4") {
