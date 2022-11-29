@@ -38,6 +38,10 @@
   code {
     @apply font-mono;
   }
+
+  label {
+    @apply select-none;
+  }
 }
 
 @layer components {
