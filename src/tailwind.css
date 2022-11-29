@@ -86,7 +86,7 @@
   }
 
   .input-checkbox {
-    @apply custom-transition border-gray-300 focus:ring-primary-100 focus:ring focus:outline-none focus:shadow-none rounded accent-primary-500 scale-110 cursor-pointer;
+    @apply custom-transition border-gray-300 focus:ring-primary-100 focus:ring focus:outline-none focus:shadow-none rounded checked:bg-primary-500 scale-110 cursor-pointer;
   }
 
   .alert {
