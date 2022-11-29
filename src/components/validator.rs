@@ -22,37 +22,37 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     let url_str = create_signal(cx, String::new());
     let transition = use_transition(cx);
     let show_results = create_signal(cx, false);
-    let settings_open = create_signal(cx, false);
-    // Use CORS proxy on localhost to avoid CORS issues.
-    let proxy = create_signal(cx, String::new());
+    // Use CORS proxy to avoid CORS issues.
+    let use_proxy = create_signal(cx, false);
 
     // Initialize proxy.
     if let Some(window) = web_sys::window() {
         if let Ok(Some(storage)) = window.local_storage() {
-            if let Ok(Some(proxy_)) = storage.get_item("validator-proxy") {
-                proxy.set(proxy_);
+            if let Ok(Some(proxy_)) = storage.get_item("use-validator-proxy") {
+                if proxy_ == "true" {
+                    use_proxy.set(true);
+                }
             } else {
-                proxy.set("".to_string());
+                storage.set_item("use-validator-proxy", "false").unwrap();
             }
         }
     }
 
     create_effect(cx, move || {
-        utils::change_dialog_state(*settings_open.get());
-        if !*settings_open.get() {
+        if *use_proxy.get() {
             if let Some(window) = web_sys::window() {
                 if let Ok(Some(storage)) = window.local_storage() {
-                    storage
-                        .set_item("validator-proxy", &proxy.get())
-                        .expect("Failed to save proxy URL to local storage");
+                    storage.set_item("use-validator-proxy", "true").unwrap();
                 }
+            }
+        } else if let Some(window) = web_sys::window() {
+            if let Ok(Some(storage)) = window.local_storage() {
+                storage.set_item("use-validator-proxy", "false").unwrap();
             }
         }
     });
 
     let fetch_feed = move |x| transition.start(move || fetching_data.set(x), || ());
-
-    const CORS_PROXY_URL: &str = "https://cors-anywhere.herokuapp.com/";
 
     create_effect(cx, move || {
         if *fetching_data.get() {
@@ -76,14 +76,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     }
 
     view! { cx,
-    div(class="flex flex-row items-center") {
-        crate::components::ToolsBreadcrumbs(title="Podcast Validator")
-            button(
-                class="ml-auto text-gray-400 hover:text-gray-600",
-                dangerously_set_inner_html=utils::Icon::Settings.to_string().replace("{{ class }}", "h-5 stroke-2").as_str(),
-                on:click=|_| settings_open.set(true),
-                ) {}
-    }
+    crate::components::ToolsBreadcrumbs(title="Podcast Validator")
 
     h1(class="mb-3") { "Podcast Validator" }
     h2(class="mt-3 text-gray-500") { "Make sure your Podcasting 2.0 feed is valid." }
@@ -104,38 +97,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
         utils::AlertHTML(type_=utils::AlertType::Warning, msg=view! {cx, "This tool is being actively developed and may not work as expected. Please report any issues " utils::Link(url="https://github.com/rssblue/tools/issues".to_string(), text="on GitHub".to_string(), new_tab=true) "." })
     }
 
-    dialog(id="settings") {
-        h2(class="mt-0") { "Settings" }
-
-        p(class="text-gray-700") {
-            "You can try using a proxy to fetch the feeds. One option is "
-                utils::Link(url=CORS_PROXY_URL.to_string(), text=CORS_PROXY_URL.to_string(), new_tab=true)
-                ". You can go to this site to get access to the proxy, after which you should copy and paste this URL in the field below."
-
-        }
-
-        label(class="text-gray-700", for="proxy") {
-            "Proxy"
-        }
-        input(
-            id="token",
-            type="url",
-            class="input-text text-gray-700",
-            placeholder=CORS_PROXY_URL,
-            bind:value=proxy,
-            )
-
-            button(
-                class="btn btn-primary w-full mt-4",
-                type="button",
-                tabindex="-1",
-                on:click=|_| settings_open.set(false),
-                ) {
-                "Save"
-            }
-    }
-
-    form(class="mb-4") {
+    form(class="mb-4 space-y-3") {
         // Prevent submission with "Enter".
         button(
             type="submit",
@@ -174,12 +136,26 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
             }
 
         }
+
+        div(class="flex flex-row items-center") {
+            div(class="cursor-pointer") {
+                input(
+                    id="use-proxy",
+                    type="checkbox",
+                    class="input-checkbox",
+                    bind:checked=use_proxy,
+                    )
+                    label(class="ml-2", for="use-proxy") {
+                        "Route requests through RSS Blue"
+                    }
+            }
+        }
     }
 
     (if *show_results.get() {
         view!{cx,
         Suspense(fallback=view! { cx, }) {
-            Validate(url=url_str.get().to_string(), proxy=proxy.get().to_string())
+            Validate(url=url_str.get().to_string(), use_proxy=*use_proxy.get())
         }
         }
     } else {
@@ -192,11 +168,13 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
 }
 
 #[component(inline_props)]
-pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, proxy: String) -> View<G> {
-    let url = if proxy.is_empty() {
-        url
+pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) -> View<G> {
+    const CORS_PROXY_URL: &str = "https://proxy.rssblue.com?url=";
+
+    let url = if use_proxy {
+        format!("{}{}", CORS_PROXY_URL, url)
     } else {
-        format!("{}{}", proxy, url)
+        url
     };
 
     let url = match Url::parse(&url) {
@@ -212,10 +190,10 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, proxy: String) ->
     let resp = match resp {
         Ok(x) => x,
         Err(e) => {
-            if e.is_request() {
+            if e.is_request() && !use_proxy {
                 return view! {cx,
                 utils::AlertHTML(type_=utils::AlertType::Danger, msg=view! {cx,
-                    "Could not make the request. This could be due to a CORS error, so you can try setting up a proxy in the settings."
+                    "Could not make the request. This could be due to a CORS error, so you can try routing requests through RSS Blue by checking the box above."
                         details {
                             summary { "Original error" }
                             p { (e) }
@@ -230,8 +208,12 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, proxy: String) ->
     };
 
     if !resp.status().is_success() {
+        let mut msg = format!("Could not fetch the feed ({})", resp.status());
+        // if !proxy.is_empty() && resp.status() == reqwest_wasm::StatusCode::FORBIDDEN {
+        //     msg = format!("{}. This could be an error related to your using a proxy. Please check in the settings.", msg);
+        // }
         return view! {cx,
-        utils::Alert(type_=utils::AlertType::Danger, msg=format!("Could not fetch the feed ({})", resp.status()))
+        utils::Alert(type_=utils::AlertType::Danger, msg=msg)
         };
     }
 

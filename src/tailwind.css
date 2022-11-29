@@ -81,6 +81,10 @@
     @apply rounded-xl input-text-base;
   }
 
+  .input-checkbox {
+    @apply rounded border-gray-300 shadow-sm focus:ring-primary-100 focus:ring focus:outline-none focus:shadow-none placeholder:text-gray-300 custom-transition checked:bg-primary-500 cursor-pointer;
+  }
+
   .alert {
     @apply p-4 text-sm rounded-lg;
   }
