@@ -82,7 +82,7 @@
   }
 
   .input-checkbox {
-    @apply rounded border-gray-300 shadow-sm focus:ring-primary-100 focus:ring focus:outline-none focus:shadow-none placeholder:text-gray-300 custom-transition checked:bg-primary-500 cursor-pointer;
+    @apply custom-transition border-gray-300 focus:ring-primary-100 focus:ring focus:outline-none focus:shadow-none rounded accent-primary-500 scale-110 cursor-pointer;
   }
 
   .alert {

@@ -145,7 +145,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
                     class="input-checkbox",
                     bind:checked=use_proxy,
                     )
-                    label(class="ml-2", for="use-proxy") {
+                    label(class="ml-3 cursor-pointer", for="use-proxy") {
                         "Route requests through RSS Blue"
                     }
             }
@@ -190,32 +190,18 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) 
     let resp = match resp {
         Ok(x) => x,
         Err(e) => {
+            let mut description = "Could not fetch the feed.";
             if e.is_request() && !use_proxy {
-                return view! {cx,
-                utils::AlertHTML(type_=utils::AlertType::Danger, msg=view! {cx,
-                    "Could not make the request. This could be due to a CORS error, so you can try routing requests through RSS Blue by checking the box above."
-                        details {
-                            summary { "Original error" }
-                            p { (e) }
-                        }
-                })
-                };
+                description = "Could not make the request. This could be due to a CORS error, so you can try routing requests through RSS Blue by clicking on the checkbox above.";
             }
-            return view! {cx,
-            utils::Alert(type_=utils::AlertType::Danger, msg=format!("Could not fetch the feed ({e})"))
+            let description = view! { cx, (description) };
+            return view! { cx,
+                ProgramError(description=description, error=Some(("Original error".to_string(), e.to_string())))
             };
         }
     };
 
-    if !resp.status().is_success() {
-        let mut msg = format!("Could not fetch the feed ({})", resp.status());
-        // if !proxy.is_empty() && resp.status() == reqwest_wasm::StatusCode::FORBIDDEN {
-        //     msg = format!("{}. This could be an error related to your using a proxy. Please check in the settings.", msg);
-        // }
-        return view! {cx,
-        utils::Alert(type_=utils::AlertType::Danger, msg=msg)
-        };
-    }
+    let status = resp.status();
 
     let text = match resp.text().await {
         Ok(x) => x,
@@ -225,6 +211,13 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) 
             }
         }
     };
+
+    if !status.is_success() {
+        let description = view! { cx, "Could not fetch the feed (" (status) ")" };
+        return view! { cx,
+            ProgramError(description=description, error=Some(("Response".to_string(), text.to_string())))
+        };
+    }
 
     let feed = match badpod::from_str(&text) {
         Ok(x) => x,
@@ -1860,6 +1853,29 @@ fn analyze_podcast_social_interact(social_interact: &badpod::podcast::SocialInte
         errors,
         attributes,
         ..Default::default()
+    }
+}
+
+#[component(inline_props)]
+fn ProgramError<G: Html>(
+    cx: Scope,
+    description: View<G>,
+    error: Option<(String, String)>,
+) -> View<G> {
+    let mut input = description;
+
+    if let Some((error_name, error)) = error {
+        input = view! { cx,
+        (input)
+        details(class="mt-2") {
+            summary(class="font-bold") { (error_name) }
+            div(class="text-xs font-mono") { (error) }
+        }
+        }
+    }
+
+    view! {cx,
+    utils::AlertHTML(type_ = utils::AlertType::Danger, msg = input)
     }
 }
 
