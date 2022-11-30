@@ -3,8 +3,18 @@ use sycamore::prelude::*;
 use sycamore::suspense::{use_transition, Suspense};
 use url::Url;
 
+#[derive(Debug, Clone, Default)]
+struct ProgramError {
+    description: String,
+    error: Option<(String, String)>,
+}
+
 #[component]
 pub fn Validator<G: Html>(cx: Scope) -> View<G> {
+    let _program_error: Option<ProgramError> = None;
+    const VALIDATOR_STORAGE_KEY_USE_PROXY: &str = "validator_use_proxy";
+    let program_error = create_signal(cx, _program_error);
+
     let mut url_in_url = String::new();
     // Get 'op3-url' query parameter.
     if let Some(window) = web_sys::window() {
@@ -26,29 +36,35 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     let use_proxy = create_signal(cx, false);
 
     // Initialize proxy.
-    if let Some(window) = web_sys::window() {
-        if let Ok(Some(storage)) = window.local_storage() {
-            if let Ok(Some(proxy_)) = storage.get_item("use-validator-proxy") {
-                if proxy_ == "true" {
-                    use_proxy.set(true);
-                }
-            } else {
-                storage.set_item("use-validator-proxy", "false").unwrap();
+    match utils::get_from_storage(VALIDATOR_STORAGE_KEY_USE_PROXY) {
+        Ok(Some(use_proxy_storage)) => match use_proxy_storage.as_str() {
+            "true" => {
+                use_proxy.set(true);
             }
+            _ => {
+                use_proxy.set(false);
+            }
+        },
+        Ok(None) => {}
+        Err(e) => {
+            program_error.set(Some(ProgramError {
+                description: "Failed to get use_proxy from storage".to_string(),
+                error: Some(("Original error".to_string(), e)),
+            }));
         }
-    }
+    };
 
     create_effect(cx, move || {
-        if *use_proxy.get() {
-            if let Some(window) = web_sys::window() {
-                if let Ok(Some(storage)) = window.local_storage() {
-                    storage.set_item("use-validator-proxy", "true").unwrap();
-                }
-            }
-        } else if let Some(window) = web_sys::window() {
-            if let Ok(Some(storage)) = window.local_storage() {
-                storage.set_item("use-validator-proxy", "false").unwrap();
-            }
+        let result = if *use_proxy.get() {
+            utils::set_in_storage(VALIDATOR_STORAGE_KEY_USE_PROXY, "true")
+        } else {
+            utils::remove_from_storage(VALIDATOR_STORAGE_KEY_USE_PROXY)
+        };
+        if let Err(e) = result {
+            program_error.set(Some(ProgramError {
+                description: "Error when accessing storage to update the settings".to_string(),
+                error: Some(("Original error".to_string(), e)),
+            }));
         }
     });
 
@@ -163,6 +179,12 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
         }
     })
 
+    (if program_error.get().is_some() {
+            let error = &*program_error.get();
+            view! { cx, DisplayProgramError(program_error=error.clone().unwrap_or_default()) }
+        } else {
+            view! { cx, }
+        })
 
     }
 }
@@ -194,10 +216,11 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) 
             if e.is_request() && !use_proxy {
                 description = "Could not make the request. This could be due to a CORS error, so you can try routing requests through RSS Blue by clicking on the checkbox above.";
             }
-            let description = view! { cx, (description) };
-            return view! { cx,
-                ProgramError(description=description, error=Some(("Original error".to_string(), e.to_string())))
+            let program_error = ProgramError {
+                description: description.to_string(),
+                error: Some(("Original error".to_string(), e.to_string())),
             };
+            return view! { cx, DisplayProgramError(program_error=program_error) };
         }
     };
 
@@ -213,10 +236,11 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) 
     };
 
     if !status.is_success() {
-        let description = view! { cx, "Could not fetch the feed (" (status) ")" };
-        return view! { cx,
-            ProgramError(description=description, error=Some(("Response".to_string(), text.to_string())))
+        let program_error = ProgramError {
+            description: format!("Could not fetch the feed ({})", status),
+            error: Some(("Response".to_string(), text)),
         };
+        return view! { cx, DisplayProgramError(program_error=program_error) };
     }
 
     let feed = match badpod::from_str(&text) {
@@ -1857,14 +1881,10 @@ fn analyze_podcast_social_interact(social_interact: &badpod::podcast::SocialInte
 }
 
 #[component(inline_props)]
-fn ProgramError<G: Html>(
-    cx: Scope,
-    description: View<G>,
-    error: Option<(String, String)>,
-) -> View<G> {
-    let mut input = description;
+fn DisplayProgramError<G: Html>(cx: Scope, program_error: ProgramError) -> View<G> {
+    let mut input = view! { cx, (program_error.description) };
 
-    if let Some((error_name, error)) = error {
+    if let Some((error_name, error)) = program_error.error {
         input = view! { cx,
         (input)
         details(class="mt-2") {

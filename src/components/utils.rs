@@ -1,5 +1,5 @@
 use sycamore::prelude::*;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, JsValue};
 
 pub enum AlertType {
     Success,
@@ -112,4 +112,41 @@ pub fn change_dialog_state(open: bool) {
             }
         }
     }
+}
+
+pub fn get_storage() -> Result<web_sys::Storage, String> {
+    let window = match web_sys::window() {
+        Some(window) => window,
+        None => return Err("No window".to_string()),
+    };
+
+    match window.local_storage() {
+        Ok(Some(storage)) => Ok(storage),
+        Ok(None) => Err("No storage".to_string()),
+        Err(err) => Err(err.as_string().unwrap_or("Unknown error".to_string())),
+    }
+}
+
+pub fn get_from_storage(key: &str) -> Result<Option<String>, String> {
+    let storage = get_storage()?;
+
+    storage
+        .get_item(key)
+        .map_err(|err| err.as_string().unwrap_or("Unknown error".to_string()))
+}
+
+pub fn set_in_storage(key: &str, value: &str) -> Result<(), String> {
+    let storage = get_storage()?;
+
+    storage
+        .set_item(key, value)
+        .map_err(|err| err.as_string().unwrap_or("Unknown error".to_string()))
+}
+
+pub fn remove_from_storage(key: &str) -> Result<(), String> {
+    let storage = get_storage()?;
+
+    storage
+        .remove_item(key)
+        .map_err(|err| err.as_string().unwrap_or("Unknown error".to_string()))
 }
