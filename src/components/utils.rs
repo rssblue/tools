@@ -10,7 +10,12 @@ pub enum AlertType {
 
 #[component(inline_props)]
 pub fn Alert<G: Html>(cx: Scope, type_: AlertType, msg: String) -> View<G> {
-    let v = view! { cx, (msg) };
+    let v = view! { cx,
+        span(
+            dangerously_set_inner_html=msg.as_str(),
+            ){}
+    };
+
     view! { cx,
         AlertHTML(type_=type_, msg=v)
     }
