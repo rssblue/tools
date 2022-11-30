@@ -255,7 +255,7 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) 
     let root_node = analyze_rss(&feed);
 
     view! { cx,
-    DisplayNode(node=root_node, root=true)
+    DisplayNode(node=root_node, is_root=true)
     }
 }
 
@@ -411,14 +411,29 @@ impl Node {
 
         false
     }
+
+    fn descendants_have_podcast_tags(&self) -> bool {
+        if self.name.0 == Some(Namespace::Podcast) {
+            return true;
+        }
+
+        for child in &self.children {
+            if child.descendants_have_podcast_tags() {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 #[component(inline_props)]
-fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node, root: bool) -> View<G> {
+fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node, is_root: bool) -> View<G> {
     let children = create_signal(cx, node.children.clone());
     let errors = create_signal(cx, node.errors.clone());
     let attributes = create_signal(cx, node.attributes.clone());
     let have_nested_errors = node.descendants_have_errors();
+    let have_podcast_tags = node.descendants_have_podcast_tags();
     let name_cls = if have_nested_errors {
         "text-danger-500"
     } else {
@@ -426,16 +441,20 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node, root: bool) -> View<G> {
     };
 
     view! { cx,
-    (if !have_nested_errors && root {
-        view! { cx,
+    (match (is_root, have_podcast_tags, have_nested_errors) {
+        (true, false, _) => view! { cx,
+        div(class="mb-5") {
+            utils::Alert(type_=utils::AlertType::Info, msg="No podcast namespace tags found.".to_string())
+        }
+        },
+        (true, true, false) => view! { cx,
         div(class="mb-5") {
             utils::Alert(type_=utils::AlertType::Success, msg="Our analysis has not found any errors in the podcast namespace tags.".to_string())
         }
-        }
-    } else {
-        view! { cx,
-        }
-    })
+        },
+        _ => view! { cx, },
+        })
+
     details(open=have_nested_errors) {
         summary(class=name_cls) {
             code(class="font-bold") { "<"(node.name)">" }
@@ -462,7 +481,7 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node, root: bool) -> View<G> {
                 Indexed(
                     iterable=children,
                     view=|cx, x| view! { cx,
-                    DisplayNode(node=x, root=false)
+                    DisplayNode(node=x, is_root=false)
                     },
                     )
             }
