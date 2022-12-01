@@ -247,7 +247,7 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) 
         Ok(x) => x,
         Err(e) => {
             return view! {cx,
-            utils::Alert(type_=utils::AlertType::Danger, msg=format!("Could not parse the feed ({e})"))
+            utils::Alert(type_=utils::AlertType::Danger, msg=format!("Could not parse the feed ({e:?})"))
             }
         }
     };
@@ -785,10 +785,10 @@ fn analyze_podcast_live_item(item: &badpod::podcast::LiveItem) -> Node {
         _ => errors.push(Error::MultipleChildren(TagName(None, "title".to_string()))),
     }
 
-    for content_link in &item.content_link {
+    for content_link in &item.podcast_content_link {
         children.push(analyze_podcast_content_link(content_link));
     }
-    if item.content_link.is_empty() {
+    if item.podcast_content_link.is_empty() {
         errors.push(Error::MissingChild(TagName(
             Some(Namespace::Podcast),
             "contentLink".to_string(),
