@@ -1575,7 +1575,7 @@ fn analyze_podcast_soundbite(soundbite: &badpod::podcast::Soundbite) -> Node {
 
     match &soundbite.start_time {
         Some(badpod::Float::Ok(f)) => {
-            attributes.push(("start".to_string(), f.to_string()));
+            attributes.push(("startTime".to_string(), f.to_string()));
         }
         Some(badpod::Float::Other(s)) => {
             errors.push(Error::InvalidAttribute("start".to_string(), s.to_string()));
