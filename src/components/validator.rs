@@ -303,22 +303,19 @@ enum Error {
     Custom(String),
 }
 
+const NODE_VALUE: &str = "node value";
+
 #[component(inline_props)]
 pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
     match error {
         Error::MissingAttribute(attr) => {
-            if attr == "value" {
+            if attr == NODE_VALUE {
                 view! { cx,
                 div(class="text-red-500") {
-                    "Missing value"
+                    "Missing node value"
                 }
                 }
             } else {
-                let attr = if attr == "value_attr" {
-                    "value".to_string()
-                } else {
-                    attr.to_string()
-                };
                 view! { cx,
                 div(class="text-red-500") {
                     "Missing attribute "
@@ -328,19 +325,14 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
             }
         }
         Error::InvalidAttribute(attr, value) => {
-            if attr == "value" {
+            if attr == NODE_VALUE {
                 view! { cx,
                 div(class="text-red-500") {
-                    "Invalid value "
+                    "Invalid node value "
                         code { "\"" (value) "\"" }
                 }
                 }
             } else {
-                let attr = if attr == "value_attr" {
-                    "value".to_string()
-                } else {
-                    attr.to_string()
-                };
                 view! { cx,
                 div(class="text-red-500") {
                     "Attribute "
@@ -369,10 +361,10 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
             }
         }
         Error::AttributeExceedsMaxLength(attr, value, max_len) => {
-            if attr == "value" {
+            if attr == NODE_VALUE {
                 view! { cx,
                 div(class="text-red-500") {
-                    "Value "
+                    "Node value "
                         code { "\"" (value) "\"" }
                     " exceeds maximum length of "
                         code { (max_len) }
@@ -380,11 +372,6 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                 }
                 }
             } else {
-                let attr = if attr == "value_attr" {
-                    "value".to_string()
-                } else {
-                    attr.to_string()
-                };
                 view! { cx,
                 div(class="text-red-500") {
                     "Attribute "
@@ -918,7 +905,7 @@ fn analyze_podcast_live_item(item: &badpod::podcast::LiveItem) -> Node {
 fn analyze_title(title: String) -> Node {
     Node {
         name: TagName(None, "title".to_string()),
-        attributes: vec![("value".to_string(), format!("\"{}\"", title))],
+        attributes: vec![(NODE_VALUE.to_string(), format!("\"{}\"", title))],
         ..Default::default()
     }
 }
@@ -1058,22 +1045,21 @@ fn analyze_podcast_value_recipient(recipient: &badpod::podcast::ValueRecipient) 
 }
 
 fn analyze_podcast_location(location: &badpod::podcast::Location) -> Node {
-    let mut children = Vec::new();
     let mut errors = Vec::new();
     let mut attributes = Vec::new();
 
     if let Some(value) = &location.value {
         if value.len() > 128 {
             errors.push(Error::AttributeExceedsMaxLength(
-                "value".to_string(),
+                NODE_VALUE.to_string(),
                 value.to_string(),
                 128,
             ));
         } else {
-            attributes.push(("value".to_string(), format!("\"{}\"", value)));
+            attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", value)));
         }
     } else {
-        errors.push(Error::MissingAttribute("value".to_string()));
+        errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
     }
 
     if let Some(geo) = &location.geo {
@@ -1122,9 +1108,9 @@ fn analyze_podcast_location(location: &badpod::podcast::Location) -> Node {
 
     Node {
         name: TagName(Some(Namespace::Podcast), "location".to_string()),
-        children,
         errors,
         attributes,
+        ..Default::default()
     }
 }
 
@@ -1134,11 +1120,11 @@ fn analyze_podcast_guid(guid: &badpod::podcast::Guid) -> Node {
 
     match guid {
         badpod::podcast::Guid::Ok(guid) => {
-            attributes.push(("value".to_string(), format!("\"{}\"", guid)));
+            attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", guid)));
         }
         badpod::podcast::Guid::Other(guid) => {
             errors.push(Error::InvalidAttribute(
-                "value".to_string(),
+                NODE_VALUE.to_string(),
                 guid.to_string(),
             ));
         }
@@ -1159,12 +1145,12 @@ fn analyze_podcast_medium(medium: &badpod::podcast::Medium) -> Node {
     match medium {
         badpod::podcast::Medium::Other(medium) => {
             errors.push(Error::InvalidAttribute(
-                "value".to_string(),
+                NODE_VALUE.to_string(),
                 medium.to_string(),
             ));
         }
         _ => {
-            attributes.push(("value".to_string(), medium.to_string()));
+            attributes.push((NODE_VALUE.to_string(), medium.to_string()));
         }
     }
 
@@ -1181,9 +1167,9 @@ fn analyze_podcast_txt(txt: &badpod::podcast::Txt) -> Node {
     let mut attributes = Vec::new();
 
     if let Some(value) = &txt.value {
-        attributes.push(("value".to_string(), format!("\"{}\"", value)));
+        attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", value)));
     } else {
-        errors.push(Error::MissingAttribute("value".to_string()));
+        errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
     }
 
     if let Some(service) = &txt.purpose {
@@ -1204,13 +1190,16 @@ fn analyze_podcast_block(block: &badpod::podcast::Block) -> Node {
 
     match &block.value {
         Some(badpod::Bool::Ok(b)) => {
-            attributes.push(("value".to_string(), b.to_string()));
+            attributes.push((NODE_VALUE.to_string(), b.to_string()));
         }
         Some(badpod::Bool::Other(s)) => {
-            errors.push(Error::InvalidAttribute("value".to_string(), s.to_string()));
+            errors.push(Error::InvalidAttribute(
+                NODE_VALUE.to_string(),
+                s.to_string(),
+            ));
         }
         None => {
-            errors.push(Error::MissingAttribute("value".to_string()));
+            errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
         }
     }
 
@@ -1239,13 +1228,16 @@ fn analyze_podcast_locked(locked: &badpod::podcast::Locked) -> Node {
 
     match &locked.value {
         Some(badpod::Bool::Ok(b)) => {
-            attributes.push(("value".to_string(), b.to_string()));
+            attributes.push((NODE_VALUE.to_string(), b.to_string()));
         }
         Some(badpod::Bool::Other(b)) => {
-            errors.push(Error::InvalidAttribute("value".to_string(), b.to_string()));
+            errors.push(Error::InvalidAttribute(
+                NODE_VALUE.to_string(),
+                b.to_string(),
+            ));
         }
         None => {
-            errors.push(Error::MissingAttribute("value".to_string()));
+            errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
         }
     }
 
@@ -1268,15 +1260,15 @@ fn analyze_podcast_funding(funding: &badpod::podcast::Funding) -> Node {
     if let Some(value) = &funding.value {
         if value.len() > 128 {
             errors.push(Error::AttributeExceedsMaxLength(
-                "value".to_string(),
+                NODE_VALUE.to_string(),
                 value.to_string(),
                 128,
             ));
         } else {
-            attributes.push(("value".to_string(), format!("\"{}\"", value)));
+            attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", value)));
         }
     } else {
-        errors.push(Error::MissingAttribute("value".to_string()));
+        errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
     }
 
     if let Some(url) = &funding.url {
@@ -1300,15 +1292,15 @@ fn analyze_podcast_person(person: &badpod::podcast::Person) -> Node {
     if let Some(name) = &person.value {
         if name.len() > 128 {
             errors.push(Error::AttributeExceedsMaxLength(
-                "value".to_string(),
+                NODE_VALUE.to_string(),
                 name.to_string(),
                 128,
             ));
         } else {
-            attributes.push(("value".to_string(), format!("\"{}\"", name)));
+            attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", name)));
         }
     } else {
-        errors.push(Error::MissingAttribute("value".to_string()));
+        errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
     }
 
     if let Some(group) = &person.group {
@@ -1356,15 +1348,15 @@ fn analyze_podcast_trailer(trailer: &badpod::podcast::Trailer) -> Node {
     if let Some(tile) = &trailer.value {
         if tile.len() > 128 {
             errors.push(Error::AttributeExceedsMaxLength(
-                "value".to_string(),
+                NODE_VALUE.to_string(),
                 tile.to_string(),
                 128,
             ));
         } else {
-            attributes.push(("value".to_string(), format!("\"{}\"", tile)));
+            attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", tile)));
         }
     } else {
-        errors.push(Error::MissingAttribute("value".to_string()));
+        errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
     }
 
     if let Some(url) = &trailer.url {
@@ -1441,19 +1433,19 @@ fn analyze_podcast_license(license: &badpod::podcast::License) -> Node {
             badpod::podcast::LicenseType::Other(s) => {
                 if s.len() > 128 {
                     errors.push(Error::AttributeExceedsMaxLength(
-                        "value".to_string(),
+                        NODE_VALUE.to_string(),
                         s.to_string(),
                         128,
                     ));
                 } else {
-                    attributes.push(("value".to_string(), format!("\"{}\"", s)));
+                    attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", s)));
                 }
                 if license.url.is_none() {
                     errors.push(Error::MissingAttribute("url".to_string()));
                 }
             }
             _ => {
-                attributes.push(("value".to_string(), value.to_string()));
+                attributes.push((NODE_VALUE.to_string(), value.to_string()));
             }
         }
     }
@@ -1632,13 +1624,16 @@ fn analyze_podcast_season(season: &badpod::podcast::Season) -> Node {
 
     match &season.value {
         Some(badpod::Integer::Ok(i)) => {
-            attributes.push(("value".to_string(), i.to_string()));
+            attributes.push((NODE_VALUE.to_string(), i.to_string()));
         }
         Some(badpod::Integer::Other(s)) => {
-            errors.push(Error::InvalidAttribute("value".to_string(), s.to_string()));
+            errors.push(Error::InvalidAttribute(
+                NODE_VALUE.to_string(),
+                s.to_string(),
+            ));
         }
         None => {
-            errors.push(Error::MissingAttribute("value".to_string()));
+            errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
         }
     }
 
@@ -1660,13 +1655,16 @@ fn analyze_podcast_episode(episode: &badpod::podcast::Episode) -> Node {
 
     match &episode.value {
         Some(badpod::Number::Other(s)) => {
-            errors.push(Error::InvalidAttribute("value".to_string(), s.to_string()));
+            errors.push(Error::InvalidAttribute(
+                NODE_VALUE.to_string(),
+                s.to_string(),
+            ));
         }
         Some(n) => {
-            attributes.push(("value".to_string(), n.to_string()));
+            attributes.push((NODE_VALUE.to_string(), n.to_string()));
         }
         None => {
-            errors.push(Error::MissingAttribute("value".to_string()));
+            errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
         }
     }
 
@@ -1849,9 +1847,9 @@ fn analyze_podcast_integrity(integrity: &badpod::podcast::Integrity) -> Node {
     }
 
     if let Some(value) = &integrity.value {
-        attributes.push(("value_attr".to_string(), format!("\"{}\"", value)));
+        attributes.push(("value".to_string(), format!("\"{}\"", value)));
     } else {
-        errors.push(Error::MissingAttribute("value_attr".to_string()));
+        errors.push(Error::MissingAttribute("value".to_string()));
     }
 
     Node {
@@ -1941,9 +1939,9 @@ fn analyze_podcast_content_link(content_link: &badpod::podcast::ContentLink) -> 
     let mut attributes = Vec::new();
 
     if let Some(value) = &content_link.value {
-        attributes.push(("value".to_string(), format!("\"{}\"", value)));
+        attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", value)));
     } else {
-        errors.push(Error::MissingAttribute("value".to_string()));
+        errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
     }
 
     if let Some(href) = &content_link.href {
