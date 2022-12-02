@@ -102,11 +102,13 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     }
 
     p(class="mb-7") {
-        "This validator only checks the podcast namespace elements and only analyzes the text content of the feed. For other namespaces and media checks you can try "
+        "This validator only checks the podcast namespace elements and only analyzes the text content of the feed. Alternative validators you can try include "
+            utils::Link(url="https://validator.livewire.io/".to_string(), text="Livewire Podcast Validator".to_string(), new_tab=true)
+            ", "
         utils::Link(url="https://www.castfeedvalidator.com/".to_string(), text="Cast Feed Validator".to_string(), new_tab=true)
-        " by Blubrry or "
-        utils::Link(url="https://podba.se/validate/".to_string(), text="podba.se validator".to_string(), new_tab=true)
-        " by Podbase."
+        ", and "
+        utils::Link(url="https://podba.se/validate/".to_string(), text="Podbase Podcast Validator".to_string(), new_tab=true)
+        "."
     }
 
     div(class="my-7") {
