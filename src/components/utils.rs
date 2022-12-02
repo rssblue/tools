@@ -42,7 +42,7 @@ pub fn AlertHTML<G: Html>(cx: Scope, type_: AlertType, msg: View<G>) -> View<G> 
 
     view! {cx,
     div(
-        class=format!("flex items-center {class}"),
+        class=format!("flex items-center overflow-x-auto {class}"),
         role="alert",
         ) {
         span(

@@ -454,6 +454,7 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node, is_root: bool) -> View<G>
     } else {
         ""
     };
+    let details_cls = if is_root { "overflow-x-auto" } else { "" };
 
     view! { cx,
     (match (is_root, have_podcast_tags, have_nested_errors) {
@@ -470,7 +471,7 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node, is_root: bool) -> View<G>
         _ => view! { cx, },
         })
 
-    details(open=have_nested_errors) {
+    details(class=details_cls, open=have_nested_errors) {
         summary(class=name_cls) {
             code(class="font-bold") { "<"(node.name)">" }
         }
