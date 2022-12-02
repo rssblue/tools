@@ -1588,10 +1588,13 @@ fn analyze_podcast_soundbite(soundbite: &badpod::podcast::Soundbite) -> Node {
             attributes.push(("startTime".to_string(), f.to_string()));
         }
         Some(badpod::Float::Other(s)) => {
-            errors.push(Error::InvalidAttribute("start".to_string(), s.to_string()));
+            errors.push(Error::InvalidAttribute(
+                "startTime".to_string(),
+                s.to_string(),
+            ));
         }
         None => {
-            errors.push(Error::MissingAttribute("start".to_string()));
+            errors.push(Error::MissingAttribute("startTime".to_string()));
         }
     }
 
