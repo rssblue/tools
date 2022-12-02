@@ -3,15 +3,15 @@ use sycamore::prelude::*;
 use sycamore::suspense::{use_transition, Suspense};
 use url::Url;
 
-#[derive(Debug, Clone, Default)]
-struct ProgramError {
-    description: String,
+#[derive(Debug, Clone)]
+struct ProgramError<G: Html> {
+    description: View<G>,
     error: Option<(String, String)>,
 }
 
 #[component]
 pub fn Validator<G: Html>(cx: Scope) -> View<G> {
-    let _program_error: Option<ProgramError> = None;
+    let _program_error: Option<ProgramError<G>> = None;
     const VALIDATOR_STORAGE_KEY_USE_PROXY: &str = "validator_use_proxy";
     let program_error = create_signal(cx, _program_error);
 
@@ -48,7 +48,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
         Ok(None) => {}
         Err(e) => {
             program_error.set(Some(ProgramError {
-                description: "Failed to get use_proxy from storage".to_string(),
+                description: view! { cx, "Failed to get use_proxy from storage" },
                 error: Some(("Original error".to_string(), e)),
             }));
         }
@@ -62,7 +62,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
         };
         if let Err(e) = result {
             program_error.set(Some(ProgramError {
-                description: "Error when accessing storage to update the settings".to_string(),
+                description: view! { cx, "Error when accessing storage to update the settings" },
                 error: Some(("Original error".to_string(), e)),
             }));
         }
@@ -181,7 +181,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
 
     (if program_error.get().is_some() {
             let error = &*program_error.get();
-            view! { cx, DisplayProgramError(program_error=error.clone().unwrap_or_default()) }
+            view! { cx, DisplayProgramError(program_error=error.clone().unwrap()) }
         } else {
             view! { cx, }
         })
@@ -212,12 +212,27 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) 
     let resp = match resp {
         Ok(x) => x,
         Err(e) => {
-            let mut description = "Could not fetch the feed.";
+            let mut description = view! { cx, "Could not fetch the feed." };
             if e.is_request() && !use_proxy {
-                description = "Could not make the request. This could be due to a CORS error, so you can try routing requests through RSS Blue by clicking on the checkbox above.";
+                description = view! { cx,
+                "Could not make the request. This could be due to a "
+                    utils::Link(url="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS".to_string(), text="CORS".to_string(), new_tab=true)
+                    " error, so you can try routing requests through RSS Blue by clicking on the checkbox above."
+
+                details(class="mt-2") {
+                    summary(class="font-bold") { "CORS for feed hosts" }
+                    "If you control the server hosting the feed, you can add the following header to the HTTP response to allow CORS requests from any origin:"
+                    pre(class="p-1") {
+                        "Access-Control-Allow-Origin: *"
+                    }
+                    "Security-wise, this may not be optimal in every scenario, so we recommend "
+                        utils::Link(url="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS".to_string(), text="reading more about CORS".to_string(), new_tab=true)
+                        " to understand what is the best solution for " em { "you" } "."
+                }
+                };
             }
             let program_error = ProgramError {
-                description: description.to_string(),
+                description,
                 error: Some(("Original error".to_string(), e.to_string())),
             };
             return view! { cx, DisplayProgramError(program_error=program_error) };
@@ -237,7 +252,7 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) 
 
     if !status.is_success() {
         let program_error = ProgramError {
-            description: format!("Could not fetch the feed ({})", status),
+            description: view! { cx, (format!("Could not fetch the feed ({})", status)) },
             error: Some(("Response".to_string(), text)),
         };
         return view! { cx, DisplayProgramError(program_error=program_error) };
@@ -1900,7 +1915,7 @@ fn analyze_podcast_social_interact(social_interact: &badpod::podcast::SocialInte
 }
 
 #[component(inline_props)]
-fn DisplayProgramError<G: Html>(cx: Scope, program_error: ProgramError) -> View<G> {
+fn DisplayProgramError<G: Html>(cx: Scope, program_error: ProgramError<G>) -> View<G> {
     let mut input = view! { cx, (program_error.description) };
 
     if let Some((error_name, error)) = program_error.error {
