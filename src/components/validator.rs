@@ -9,6 +9,13 @@ struct ProgramError<G: Html> {
     error: Option<(String, String)>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+enum Value {
+    Text(String),
+    Object(String),
+    Url(String),
+}
+
 #[component]
 pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     let _program_error: Option<ProgramError<G>> = None;
@@ -289,7 +296,7 @@ struct TagName(Option<Namespace>, String);
 struct Node {
     name: TagName,
     children: Vec<Node>,
-    attributes: Vec<(String, String)>,
+    attributes: Vec<(String, Value)>,
     errors: Vec<Error>,
 }
 
@@ -330,7 +337,7 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                 view! { cx,
                 div(class="text-red-500") {
                     "Invalid node value "
-                        code { "\"" (value) "\"" }
+                        code { "“" (value) "”" }
                 }
                 }
             } else {
@@ -339,7 +346,7 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                     "Attribute "
                         code(class="attr") { (attr) }
                     " has invalid value "
-                        code { "\"" (value) "\"" }
+                        code { "“" (value) "”" }
                 }
                 }
             }
@@ -349,7 +356,7 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                 view! { cx,
                 div(class="text-red-500") {
                     "Invalid node value "
-                        code { "\"" (value) "\"" }
+                        code { "“" (value) "”" }
                     ": "
                         (reason)
                 }
@@ -360,7 +367,7 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                     "Attribute "
                         code(class="attr") { (attr) }
                     " has invalid value "
-                        code { "\"" (value) "\"" }
+                        code { "“" (value) "”" }
                     ": "
                         (reason)
                 }
@@ -389,7 +396,7 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                 view! { cx,
                 div(class="text-red-500") {
                     "Node value "
-                        code { "\"" (value) "\"" }
+                        code { "“" (value) "”" }
                     " exceeds maximum length of "
                         code { (max_len) }
                     " characters"
@@ -501,7 +508,26 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node, is_root: bool) -> View<G>
                             iterable=attributes,
                             view=|cx, x| view! { cx,
                             li(class="my-0") {
-                                code { span(class="attr") { (x.0) }  "=" (x.1) }
+                                code { span(class="attr") { (x.0) }  "=" }
+                                (match &x.1 {
+                                    Value::Text(s) => {
+                                        let s = s.to_string();
+                                        view! { cx, "“" (s) "”" }
+                                    },
+                                    Value::Object(s) => {
+                                        let s = s.to_string();
+                                        view! { cx, span(class="italic") { (s) } }
+                                    },
+                                    Value::Url(s) => {
+                                        let s = s.to_string();
+                                        if s.starts_with("http") {
+                                            view! { cx, utils::Link(url=s.to_string(), text=s.to_string(), new_tab=true) }
+                                        } else {
+                                            view! { cx, span(class="italic") { (s) } }
+                                        }
+                                    }
+                                }
+                                )
                             }
                             },
                             )
@@ -789,7 +815,7 @@ fn analyze_podcast_live_item(item: &badpod::podcast::LiveItem) -> Node {
                 reason.to_string(),
             ))
         }
-        Some(s) => attributes.push(("status".to_string(), s.to_string())),
+        Some(s) => attributes.push(("status".to_string(), Value::Object(s.to_string()))),
         None => errors.push(Error::MissingAttribute("status".to_string())),
     }
 
@@ -801,7 +827,7 @@ fn analyze_podcast_live_item(item: &badpod::podcast::LiveItem) -> Node {
                 reason.to_string(),
             ))
         }
-        Some(t) => attributes.push(("start".to_string(), t.to_string())),
+        Some(t) => attributes.push(("start".to_string(), Value::Object(t.to_string()))),
         None => errors.push(Error::MissingAttribute("start".to_string())),
     }
 
@@ -809,7 +835,7 @@ fn analyze_podcast_live_item(item: &badpod::podcast::LiveItem) -> Node {
         Some(badpod::DateTime::Other((s, reason))) => errors.push(
             Error::InvalidAttributeWithReason("end".to_string(), s.to_string(), reason.to_string()),
         ),
-        Some(t) => attributes.push(("end".to_string(), t.to_string())),
+        Some(t) => attributes.push(("end".to_string(), Value::Object(t.to_string()))),
         None => errors.push(Error::MissingAttribute("end".to_string())),
     }
 
@@ -937,7 +963,7 @@ fn analyze_podcast_live_item(item: &badpod::podcast::LiveItem) -> Node {
 fn analyze_title(title: String) -> Node {
     Node {
         name: TagName(None, "title".to_string()),
-        attributes: vec![(NODE_VALUE.to_string(), format!("\"{}\"", title))],
+        attributes: vec![(NODE_VALUE.to_string(), Value::Text(title.to_string()))],
         ..Default::default()
     }
 }
@@ -966,7 +992,7 @@ fn analyze_podcast_value(v4v_value: &badpod::podcast::Value) -> Node {
             ))
         }
         Some(type_) => {
-            attributes.push(("type".to_string(), type_.to_string()));
+            attributes.push(("type".to_string(), Value::Object(type_.to_string())));
         }
         None => {
             errors.push(Error::MissingAttribute("type".to_string()));
@@ -982,7 +1008,7 @@ fn analyze_podcast_value(v4v_value: &badpod::podcast::Value) -> Node {
             ))
         }
         Some(method) => {
-            attributes.push(("method".to_string(), method.to_string()));
+            attributes.push(("method".to_string(), Value::Object(method.to_string())));
         }
         None => {
             errors.push(Error::MissingAttribute("method".to_string()));
@@ -991,7 +1017,7 @@ fn analyze_podcast_value(v4v_value: &badpod::podcast::Value) -> Node {
 
     match &v4v_value.suggested {
         Some(badpod::Float::Ok(f)) => {
-            attributes.push(("suggested".to_string(), f.to_string()));
+            attributes.push(("suggested".to_string(), Value::Object(f.to_string())));
         }
         Some(badpod::Float::Other((s, reason))) => {
             errors.push(Error::InvalidAttributeWithReason(
@@ -1026,13 +1052,13 @@ fn analyze_podcast_value_recipient(recipient: &badpod::podcast::ValueRecipient) 
                 ));
             }
             _ => {
-                attributes.push(("type".to_string(), type_.to_string()));
+                attributes.push(("type".to_string(), Value::Object(type_.to_string())));
             }
         }
     }
 
     if let Some(address) = &recipient.address {
-        attributes.push(("address".to_string(), format!("\"{}\"", address)));
+        attributes.push(("address".to_string(), Value::Text(address.to_string())));
     } else {
         errors.push(Error::MissingAttribute("address".to_string()));
     }
@@ -1040,7 +1066,7 @@ fn analyze_podcast_value_recipient(recipient: &badpod::podcast::ValueRecipient) 
     if let Some(split) = &recipient.split {
         match split {
             badpod::Integer::Ok(i) => {
-                attributes.push(("split".to_string(), i.to_string()));
+                attributes.push(("split".to_string(), Value::Object(i.to_string())));
             }
             badpod::Integer::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1053,15 +1079,18 @@ fn analyze_podcast_value_recipient(recipient: &badpod::podcast::ValueRecipient) 
     }
 
     if let Some(name) = &recipient.name {
-        attributes.push(("name".to_string(), format!("\"{}\"", name)));
+        attributes.push(("name".to_string(), Value::Text(name.to_string())));
     }
 
     if let Some(custom_key) = &recipient.custom_key {
-        attributes.push(("customKey".to_string(), format!("\"{}\"", custom_key)));
+        attributes.push(("customKey".to_string(), Value::Text(custom_key.to_string())));
     }
 
     if let Some(custom_value) = &recipient.custom_value {
-        attributes.push(("customValue".to_string(), format!("\"{}\"", custom_value)));
+        attributes.push((
+            "customValue".to_string(),
+            Value::Text(custom_value.to_string()),
+        ));
     }
 
     match (&recipient.custom_key, &recipient.custom_value) {
@@ -1077,7 +1106,7 @@ fn analyze_podcast_value_recipient(recipient: &badpod::podcast::ValueRecipient) 
     if let Some(fee) = &recipient.fee {
         match fee {
             badpod::Bool::Ok(b) => {
-                attributes.push(("fee".to_string(), b.to_string()));
+                attributes.push(("fee".to_string(), Value::Object(b.to_string())));
             }
             badpod::Bool::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1109,7 +1138,7 @@ fn analyze_podcast_location(location: &badpod::podcast::Location) -> Node {
                 128,
             ));
         } else {
-            attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", value)));
+            attributes.push((NODE_VALUE.to_string(), Value::Text(value.to_string())));
         }
     } else {
         errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
@@ -1131,7 +1160,7 @@ fn analyze_podcast_location(location: &badpod::podcast::Location) -> Node {
                     geo_str.push_str(format!(", uncertainty: {}", uncertainty).as_str());
                 }
                 geo_str.push_str(" }");
-                attributes.push(("geo".to_string(), geo_str.to_string()));
+                attributes.push(("geo".to_string(), Value::Object(geo_str)));
             }
             badpod::podcast::Geo::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1155,7 +1184,7 @@ fn analyze_podcast_location(location: &badpod::podcast::Location) -> Node {
                     osm_str.push_str(format!(", revision: {}", revision).as_str());
                 }
                 osm_str.push_str(" }");
-                attributes.push(("osm".to_string(), osm_str.to_string()));
+                attributes.push(("osm".to_string(), Value::Object(osm_str)));
             }
             badpod::podcast::Osm::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1181,7 +1210,7 @@ fn analyze_podcast_guid(guid: &badpod::podcast::Guid) -> Node {
 
     match guid {
         badpod::podcast::Guid::Ok(guid) => {
-            attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", guid)));
+            attributes.push((NODE_VALUE.to_string(), Value::Text(guid.to_string())));
         }
         badpod::podcast::Guid::Other((s, reason)) => {
             errors.push(Error::InvalidAttributeWithReason(
@@ -1213,7 +1242,7 @@ fn analyze_podcast_medium(medium: &badpod::podcast::Medium) -> Node {
             ));
         }
         _ => {
-            attributes.push((NODE_VALUE.to_string(), medium.to_string()));
+            attributes.push((NODE_VALUE.to_string(), Value::Object(medium.to_string())));
         }
     }
 
@@ -1230,13 +1259,23 @@ fn analyze_podcast_txt(txt: &badpod::podcast::Txt) -> Node {
     let mut attributes = Vec::new();
 
     if let Some(value) = &txt.value {
-        attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", value)));
+        attributes.push((NODE_VALUE.to_string(), Value::Text(value.to_string())));
     } else {
         errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
     }
 
-    if let Some(service) = &txt.purpose {
-        attributes.push(("service".to_string(), format!("\"{}\"", service)));
+    match &txt.purpose {
+        Some(badpod::podcast::TxtPurpose::Other((s, reason))) => {
+            errors.push(Error::InvalidAttributeWithReason(
+                "purpose".to_string(),
+                s.to_string(),
+                reason.to_string(),
+            ));
+        }
+        Some(purpose) => {
+            attributes.push(("purpose".to_string(), Value::Object(purpose.to_string())));
+        }
+        None => {}
     }
 
     Node {
@@ -1253,7 +1292,7 @@ fn analyze_podcast_block(block: &badpod::podcast::Block) -> Node {
 
     match &block.value {
         Some(badpod::Bool::Ok(b)) => {
-            attributes.push((NODE_VALUE.to_string(), b.to_string()));
+            attributes.push((NODE_VALUE.to_string(), Value::Object(b.to_string())));
         }
         Some(badpod::Bool::Other((s, reason))) => {
             errors.push(Error::InvalidAttributeWithReason(
@@ -1277,7 +1316,7 @@ fn analyze_podcast_block(block: &badpod::podcast::Block) -> Node {
                 ));
             }
             _ => {
-                attributes.push(("id".to_string(), id.to_string()));
+                attributes.push(("id".to_string(), Value::Object(id.to_string())));
             }
         }
     }
@@ -1296,7 +1335,7 @@ fn analyze_podcast_locked(locked: &badpod::podcast::Locked) -> Node {
 
     match &locked.value {
         Some(badpod::Bool::Ok(b)) => {
-            attributes.push((NODE_VALUE.to_string(), b.to_string()));
+            attributes.push((NODE_VALUE.to_string(), Value::Object(b.to_string())));
         }
         Some(badpod::Bool::Other((s, reason))) => {
             errors.push(Error::InvalidAttributeWithReason(
@@ -1311,7 +1350,7 @@ fn analyze_podcast_locked(locked: &badpod::podcast::Locked) -> Node {
     }
 
     if let Some(owner) = &locked.owner {
-        attributes.push(("owner".to_string(), format!("\"{}\"", owner)));
+        attributes.push(("owner".to_string(), Value::Text(owner.to_string())));
     }
 
     Node {
@@ -1334,7 +1373,7 @@ fn analyze_podcast_funding(funding: &badpod::podcast::Funding) -> Node {
                 128,
             ));
         } else {
-            attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", value)));
+            attributes.push((NODE_VALUE.to_string(), Value::Text(value.to_string())));
         }
     } else {
         errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
@@ -1343,7 +1382,7 @@ fn analyze_podcast_funding(funding: &badpod::podcast::Funding) -> Node {
     if let Some(url) = &funding.url {
         match url {
             badpod::Url::Ok(url) => {
-                attributes.push(("url".to_string(), format!("\"{}\"", url)));
+                attributes.push(("url".to_string(), Value::Url(url.to_string())));
             }
             badpod::Url::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1377,7 +1416,7 @@ fn analyze_podcast_person(person: &badpod::podcast::Person) -> Node {
                 128,
             ));
         } else {
-            attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", name)));
+            attributes.push((NODE_VALUE.to_string(), Value::Text(name.to_string())));
         }
     } else {
         errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
@@ -1393,7 +1432,7 @@ fn analyze_podcast_person(person: &badpod::podcast::Person) -> Node {
                 ));
             }
             _ => {
-                attributes.push(("group".to_string(), group.to_string()));
+                attributes.push(("group".to_string(), Value::Object(group.to_string())));
             }
         }
     }
@@ -1408,7 +1447,7 @@ fn analyze_podcast_person(person: &badpod::podcast::Person) -> Node {
                 ));
             }
             _ => {
-                attributes.push(("role".to_string(), role.to_string()));
+                attributes.push(("role".to_string(), Value::Object(role.to_string())));
             }
         }
     }
@@ -1416,7 +1455,7 @@ fn analyze_podcast_person(person: &badpod::podcast::Person) -> Node {
     if let Some(image) = &person.img {
         match image {
             badpod::Url::Ok(url) => {
-                attributes.push(("img".to_string(), format!("\"{}\"", url)));
+                attributes.push(("img".to_string(), Value::Url(url.to_string())));
             }
             badpod::Url::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1431,7 +1470,7 @@ fn analyze_podcast_person(person: &badpod::podcast::Person) -> Node {
     if let Some(href) = &person.href {
         match href {
             badpod::Url::Ok(url) => {
-                attributes.push(("href".to_string(), format!("\"{}\"", url)));
+                attributes.push(("href".to_string(), Value::Url(url.to_string())));
             }
             badpod::Url::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1463,7 +1502,7 @@ fn analyze_podcast_trailer(trailer: &badpod::podcast::Trailer) -> Node {
                 128,
             ));
         } else {
-            attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", tile)));
+            attributes.push((NODE_VALUE.to_string(), Value::Text(tile.to_string())));
         }
     } else {
         errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
@@ -1472,7 +1511,7 @@ fn analyze_podcast_trailer(trailer: &badpod::podcast::Trailer) -> Node {
     if let Some(url) = &trailer.url {
         match url {
             badpod::Url::Ok(url) => {
-                attributes.push(("url".to_string(), format!("\"{}\"", url)));
+                attributes.push(("url".to_string(), Value::Url(url.to_string())));
             }
             badpod::Url::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1489,7 +1528,7 @@ fn analyze_podcast_trailer(trailer: &badpod::podcast::Trailer) -> Node {
     if let Some(pub_date) = &trailer.pub_date {
         match pub_date {
             badpod::DateTime::Ok(dt) => {
-                attributes.push(("pubDate".to_string(), dt.to_string()));
+                attributes.push(("pubDate".to_string(), Value::Object(dt.to_string())));
             }
             badpod::DateTime::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1504,7 +1543,7 @@ fn analyze_podcast_trailer(trailer: &badpod::podcast::Trailer) -> Node {
     if let Some(length) = &trailer.length {
         match length {
             badpod::Integer::Ok(i) => {
-                attributes.push(("length".to_string(), i.to_string()));
+                attributes.push(("length".to_string(), Value::Object(i.to_string())));
             }
             badpod::Integer::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1518,15 +1557,11 @@ fn analyze_podcast_trailer(trailer: &badpod::podcast::Trailer) -> Node {
 
     if let Some(mimetype) = &trailer.type_ {
         match mimetype {
-            badpod::MimeEnclosure::Other((s, reason)) => {
-                errors.push(Error::InvalidAttributeWithReason(
-                    "type".to_string(),
-                    s.to_string(),
-                    reason.to_string(),
-                ));
+            badpod::MimeEnclosure::Other((s, _)) => {
+                errors.push(Error::InvalidAttribute("type".to_string(), s.to_string()));
             }
             _ => {
-                attributes.push(("type".to_string(), mimetype.to_string()));
+                attributes.push(("type".to_string(), Value::Text(mimetype.to_string())));
             }
         }
     }
@@ -1534,7 +1569,7 @@ fn analyze_podcast_trailer(trailer: &badpod::podcast::Trailer) -> Node {
     if let Some(season) = &trailer.season {
         match season {
             badpod::Integer::Ok(i) => {
-                attributes.push(("season".to_string(), i.to_string()));
+                attributes.push(("season".to_string(), Value::Object(i.to_string())));
             }
             badpod::Integer::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1561,7 +1596,7 @@ fn analyze_podcast_license(license: &badpod::podcast::License) -> Node {
     if let Some(url) = &license.url {
         match url {
             badpod::Url::Ok(url) => {
-                attributes.push(("url".to_string(), format!("\"{}\"", url)));
+                attributes.push(("url".to_string(), Value::Url(url.to_string())));
             }
             badpod::Url::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1583,14 +1618,14 @@ fn analyze_podcast_license(license: &badpod::podcast::License) -> Node {
                         128,
                     ));
                 } else {
-                    attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", s)));
+                    attributes.push((NODE_VALUE.to_string(), Value::Text(s.to_string())));
                 }
                 if license.url.is_none() {
                     errors.push(Error::MissingAttribute("url".to_string()));
                 }
             }
             _ => {
-                attributes.push((NODE_VALUE.to_string(), value.to_string()));
+                attributes.push((NODE_VALUE.to_string(), Value::Object(value.to_string())));
             }
         }
     }
@@ -1626,7 +1661,7 @@ fn analyze_podcast_images(images: &badpod::podcast::Images) -> Node {
         }
     }
     let value = format!("[{}]", img_strs.join(", "));
-    let attributes = vec![("srcset".to_string(), value)];
+    let attributes = vec![("srcset".to_string(), Value::Object(value))];
 
     Node {
         name: TagName(Some(Namespace::Podcast), "images".to_string()),
@@ -1642,7 +1677,7 @@ fn analyze_podcast_transcript(transcript: &badpod::podcast::Transcript) -> Node 
     if let Some(url) = &transcript.url {
         match url {
             badpod::Url::Ok(url) => {
-                attributes.push(("url".to_string(), format!("\"{}\"", url)));
+                attributes.push(("url".to_string(), Value::Url(url.to_string())));
             }
             badpod::Url::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1668,7 +1703,7 @@ fn analyze_podcast_transcript(transcript: &badpod::podcast::Transcript) -> Node 
                 errors.push(Error::InvalidAttribute("type".to_string(), s.to_string()));
             }
             _ => {
-                attributes.push(("type".to_string(), type_.to_string()));
+                attributes.push(("type".to_string(), Value::Object(type_.to_string())));
             }
         }
     } else {
@@ -1685,7 +1720,7 @@ fn analyze_podcast_transcript(transcript: &badpod::podcast::Transcript) -> Node 
                 ));
             }
             _ => {
-                attributes.push(("language".to_string(), language.to_string()));
+                attributes.push(("language".to_string(), Value::Object(language.to_string())));
             }
         }
     }
@@ -1700,7 +1735,7 @@ fn analyze_podcast_transcript(transcript: &badpod::podcast::Transcript) -> Node 
                 ));
             }
             _ => {
-                attributes.push(("rel".to_string(), rel.to_string()));
+                attributes.push(("rel".to_string(), Value::Object(rel.to_string())));
             }
         }
     }
@@ -1720,7 +1755,7 @@ fn analyze_podcast_chapters(chapters: &badpod::podcast::Chapters) -> Node {
     if let Some(url) = &chapters.url {
         match url {
             badpod::Url::Ok(url) => {
-                attributes.push(("url".to_string(), format!("\"{}\"", url)));
+                attributes.push(("url".to_string(), Value::Url(url.to_string())));
             }
             badpod::Url::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -1740,7 +1775,7 @@ fn analyze_podcast_chapters(chapters: &badpod::podcast::Chapters) -> Node {
                 errors.push(Error::InvalidAttribute("type".to_string(), s.to_string()));
             }
             _ => {
-                attributes.push(("type".to_string(), type_.to_string()));
+                attributes.push(("type".to_string(), Value::Object(type_.to_string())));
             }
         }
     } else {
@@ -1761,7 +1796,7 @@ fn analyze_podcast_soundbite(soundbite: &badpod::podcast::Soundbite) -> Node {
 
     match &soundbite.start_time {
         Some(badpod::Float::Ok(f)) => {
-            attributes.push(("startTime".to_string(), f.to_string()));
+            attributes.push(("startTime".to_string(), Value::Object(f.to_string())));
         }
         Some(badpod::Float::Other((s, reason))) => {
             errors.push(Error::InvalidAttributeWithReason(
@@ -1777,7 +1812,7 @@ fn analyze_podcast_soundbite(soundbite: &badpod::podcast::Soundbite) -> Node {
 
     match &soundbite.duration {
         Some(badpod::Float::Ok(f)) => {
-            attributes.push(("duration".to_string(), f.to_string()));
+            attributes.push(("duration".to_string(), Value::Object(f.to_string())));
         }
         Some(badpod::Float::Other((s, reason))) => {
             errors.push(Error::InvalidAttributeWithReason(
@@ -1805,7 +1840,7 @@ fn analyze_podcast_season(season: &badpod::podcast::Season) -> Node {
 
     match &season.value {
         Some(badpod::Integer::Ok(i)) => {
-            attributes.push((NODE_VALUE.to_string(), i.to_string()));
+            attributes.push((NODE_VALUE.to_string(), Value::Object(i.to_string())));
         }
         Some(badpod::Integer::Other((s, reason))) => {
             errors.push(Error::InvalidAttributeWithReason(
@@ -1820,7 +1855,7 @@ fn analyze_podcast_season(season: &badpod::podcast::Season) -> Node {
     }
 
     if let Some(name) = &season.name {
-        attributes.push(("name".to_string(), format!("\"{}\"", name)));
+        attributes.push(("name".to_string(), Value::Text(name.to_string())));
     }
 
     Node {
@@ -1844,7 +1879,7 @@ fn analyze_podcast_episode(episode: &badpod::podcast::Episode) -> Node {
             ));
         }
         Some(n) => {
-            attributes.push((NODE_VALUE.to_string(), n.to_string()));
+            attributes.push((NODE_VALUE.to_string(), Value::Object(n.to_string())));
         }
         None => {
             errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
@@ -1852,7 +1887,7 @@ fn analyze_podcast_episode(episode: &badpod::podcast::Episode) -> Node {
     }
 
     if let Some(display) = &episode.display {
-        attributes.push(("display".to_string(), format!("\"{}\"", display)));
+        attributes.push(("display".to_string(), Value::Text(display.to_string())));
     }
 
     Node {
@@ -1876,7 +1911,7 @@ fn analyze_podcast_alternate_enclosure(
                 errors.push(Error::InvalidAttribute("type".to_string(), s.to_string()));
             }
             _ => {
-                attributes.push(("type".to_string(), type_.to_string()));
+                attributes.push(("type".to_string(), Value::Object(type_.to_string())));
             }
         }
     } else {
@@ -1893,7 +1928,7 @@ fn analyze_podcast_alternate_enclosure(
                 ));
             }
             _ => {
-                attributes.push(("length".to_string(), length.to_string()));
+                attributes.push(("length".to_string(), Value::Object(length.to_string())));
             }
         }
     }
@@ -1908,7 +1943,7 @@ fn analyze_podcast_alternate_enclosure(
                 ));
             }
             _ => {
-                attributes.push(("bitrate".to_string(), bit_rate.to_string()));
+                attributes.push(("bitrate".to_string(), Value::Object(bit_rate.to_string())));
             }
         }
     }
@@ -1923,17 +1958,17 @@ fn analyze_podcast_alternate_enclosure(
                 ));
             }
             _ => {
-                attributes.push(("height".to_string(), height.to_string()));
+                attributes.push(("height".to_string(), Value::Object(height.to_string())));
             }
         }
     }
 
     if let Some(lang) = &alternate_enclosure.language {
-        attributes.push(("lang".to_string(), lang.to_string()));
+        attributes.push(("lang".to_string(), Value::Text(lang.to_string())));
     }
 
     if let Some(title) = &alternate_enclosure.title {
-        attributes.push(("title".to_string(), format!("\"{}\"", title)));
+        attributes.push(("title".to_string(), Value::Text(title.to_string())));
     }
 
     if let Some(rel) = &alternate_enclosure.rel {
@@ -1944,7 +1979,7 @@ fn analyze_podcast_alternate_enclosure(
                 32,
             ));
         } else {
-            attributes.push(("rel".to_string(), format!("\"{}\"", rel)));
+            attributes.push(("rel".to_string(), Value::Text(rel.to_string())));
         }
     }
 
@@ -1958,7 +1993,7 @@ fn analyze_podcast_alternate_enclosure(
                 ));
             }
             _ => {
-                attributes.push(("default".to_string(), default.to_string()));
+                attributes.push(("default".to_string(), Value::Object(default.to_string())));
             }
         }
     }
@@ -1998,7 +2033,7 @@ fn analyze_podcast_source(source: &badpod::podcast::Source) -> Node {
     if let Some(uri) = &source.uri {
         match uri {
             badpod::Url::Ok(url) => {
-                attributes.push(("uri".to_string(), url.to_string()));
+                attributes.push(("uri".to_string(), Value::Url(url.to_string())));
             }
             badpod::Url::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -2021,7 +2056,10 @@ fn analyze_podcast_source(source: &badpod::podcast::Source) -> Node {
                 ));
             }
             _ => {
-                attributes.push(("contentType".to_string(), content_type.to_string()));
+                attributes.push((
+                    "contentType".to_string(),
+                    Value::Object(content_type.to_string()),
+                ));
             }
         }
     }
@@ -2047,7 +2085,7 @@ fn analyze_podcast_integrity(integrity: &badpod::podcast::Integrity) -> Node {
             ));
         }
         Some(t) => {
-            attributes.push(("type".to_string(), t.to_string()));
+            attributes.push(("type".to_string(), Value::Object(t.to_string())));
         }
         None => {
             errors.push(Error::MissingAttribute("type".to_string()));
@@ -2055,7 +2093,7 @@ fn analyze_podcast_integrity(integrity: &badpod::podcast::Integrity) -> Node {
     }
 
     if let Some(value) = &integrity.value {
-        attributes.push(("value".to_string(), format!("\"{}\"", value)));
+        attributes.push(("value".to_string(), Value::Text(value.to_string())));
     } else {
         errors.push(Error::MissingAttribute("value".to_string()));
     }
@@ -2075,7 +2113,7 @@ fn analyze_podcast_social_interact(social_interact: &badpod::podcast::SocialInte
     if let Some(uri) = &social_interact.uri {
         match uri {
             badpod::Url::Ok(url) => {
-                attributes.push(("uri".to_string(), url.to_string()));
+                attributes.push(("uri".to_string(), Value::Url(url.to_string())));
             }
             badpod::Url::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -2098,7 +2136,7 @@ fn analyze_podcast_social_interact(social_interact: &badpod::podcast::SocialInte
             ));
         }
         Some(p) => {
-            attributes.push(("protocol".to_string(), p.to_string()));
+            attributes.push(("protocol".to_string(), Value::Object(p.to_string())));
         }
         None => {
             errors.push(Error::MissingAttribute("protocol".to_string()));
@@ -2106,13 +2144,13 @@ fn analyze_podcast_social_interact(social_interact: &badpod::podcast::SocialInte
     }
 
     if let Some(account_id) = &social_interact.account_id {
-        attributes.push(("accountId".to_string(), format!("\"{}\"", account_id)));
+        attributes.push(("accountId".to_string(), Value::Text(account_id.to_string())));
     }
 
     if let Some(account_url) = &social_interact.account_url {
         match account_url {
             badpod::Url::Ok(url) => {
-                attributes.push(("accountUrl".to_string(), url.to_string()));
+                attributes.push(("accountUrl".to_string(), Value::Url(url.to_string())));
             }
             badpod::Url::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
@@ -2134,7 +2172,7 @@ fn analyze_podcast_social_interact(social_interact: &badpod::podcast::SocialInte
                 ));
             }
             _ => {
-                attributes.push(("priority".to_string(), priority.to_string()));
+                attributes.push(("priority".to_string(), Value::Object(priority.to_string())));
             }
         }
     }
@@ -2171,7 +2209,7 @@ fn analyze_podcast_content_link(content_link: &badpod::podcast::ContentLink) -> 
     let mut attributes = Vec::new();
 
     if let Some(value) = &content_link.value {
-        attributes.push((NODE_VALUE.to_string(), format!("\"{}\"", value)));
+        attributes.push((NODE_VALUE.to_string(), Value::Text(value.to_string())));
     } else {
         errors.push(Error::MissingAttribute(NODE_VALUE.to_string()));
     }
@@ -2179,7 +2217,7 @@ fn analyze_podcast_content_link(content_link: &badpod::podcast::ContentLink) -> 
     if let Some(href) = &content_link.href {
         match href {
             badpod::Url::Ok(url) => {
-                attributes.push(("href".to_string(), url.to_string()));
+                attributes.push(("href".to_string(), Value::Url(url.to_string())));
             }
             badpod::Url::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
