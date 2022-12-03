@@ -319,13 +319,13 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
         Error::MissingAttribute(attr) => {
             if attr == NODE_VALUE {
                 view! { cx,
-                div(class="text-red-500") {
+                div(class="text-danger-500") {
                     "Missing node value"
                 }
                 }
             } else {
                 view! { cx,
-                div(class="text-red-500") {
+                div(class="text-danger-500") {
                     "Missing attribute "
                         code(class="attr") { (attr) }
                 }
@@ -335,14 +335,14 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
         Error::InvalidAttribute(attr, value) => {
             if attr == NODE_VALUE {
                 view! { cx,
-                div(class="text-red-500") {
+                div(class="text-danger-500") {
                     "Invalid node value "
                         code { "“" (value) "”" }
                 }
                 }
             } else {
                 view! { cx,
-                div(class="text-red-500") {
+                div(class="text-danger-500") {
                     "Attribute "
                         code(class="attr") { (attr) }
                     " has invalid value "
@@ -354,29 +354,33 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
         Error::InvalidAttributeWithReason(attr, value, reason) => {
             if attr == NODE_VALUE {
                 view! { cx,
-                div(class="text-red-500") {
+                span(class="text-danger-500") {
                     "Invalid node value "
                         code { "“" (value) "”" }
+                }
+                span(class="text-gray-500") {
                     ": "
                         (reason)
                 }
                 }
             } else {
                 view! { cx,
-                div(class="text-red-500") {
-                    "Attribute "
-                        code(class="attr") { (attr) }
-                    " has invalid value "
-                        code { "“" (value) "”" }
-                    ": "
-                        (reason)
-                }
+                    span(class="text-danger-500") {
+                        "Attribute "
+                            code(class="attr") { (attr) }
+                        " has invalid value "
+                            code { "“" (value) "”" }
+                    }
+                    span(class="text-gray-500") {
+                        ": "
+                            (reason)
+                    }
                 }
             }
         }
         Error::MissingChild(tag_name) => {
             view! { cx,
-            div(class="text-red-500") {
+            div(class="text-danger-500") {
                 "Missing child "
                     code { "<" (tag_name) ">" }
             }
@@ -384,7 +388,7 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
         }
         Error::MultipleChildren(tag_name) => {
             view! { cx,
-            div(class="text-red-500") {
+            div(class="text-danger-500") {
                 "Only one child "
                     code { "<" (tag_name) ">" }
                 " is allowed"
@@ -394,7 +398,7 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
         Error::AttributeExceedsMaxLength(attr, value, max_len) => {
             if attr == NODE_VALUE {
                 view! { cx,
-                div(class="text-red-500") {
+                div(class="text-danger-500") {
                     "Node value "
                         code { "“" (value) "”" }
                     " exceeds maximum length of "
@@ -404,7 +408,7 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                 }
             } else {
                 view! { cx,
-                div(class="text-red-500") {
+                div(class="text-danger-500") {
                     "Attribute "
                         code(class="attr") { (attr) }
                     " exceeds maximum length of "
@@ -416,7 +420,7 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
         }
         Error::Custom(msg) => {
             view! { cx,
-            div(class="text-red-500", dangerously_set_inner_html=msg.as_str()) {}
+            div(class="text-danger-500", dangerously_set_inner_html=msg.as_str()) {}
             }
         }
     }
@@ -501,7 +505,7 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node, is_root: bool) -> View<G>
                     Indexed(
                         iterable=errors,
                         view=|cx, x| view! { cx,
-                        li(class="my-0 marker:text-danger-500 text-danger-500") { DisplayError(error=x) }
+                        li(class="my-0 marker:text-danger-500") { DisplayError(error=x) }
                         },
                         )
                         Indexed(
