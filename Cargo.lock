@@ -65,9 +65,9 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "badpod"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed1c814adf6b75db9cc61e331a98c4c5b829447bf12e16e8ce5b41049e80d60e"
+checksum = "609fff0b6350fc9529cdf0c45efa50c40602962b0c2365f2f3fd0326c84e4408"
 dependencies = [
  "chrono",
  "regex",
@@ -75,6 +75,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "time 0.3.17",
+ "url",
 ]
 
 [[package]]
