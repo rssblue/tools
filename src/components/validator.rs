@@ -202,12 +202,6 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
 pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) -> View<G> {
     const CORS_PROXY_URL: &str = "https://proxy.rssblue.com?url=";
 
-    let url = if use_proxy {
-        format!("{}{}", CORS_PROXY_URL, url)
-    } else {
-        url
-    };
-
     let url = match Url::parse(&url) {
         Ok(url) => url,
         Err(e) => {
@@ -216,6 +210,18 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) 
             };
         }
     };
+    if url.scheme() != "http" && url.scheme() != "https" {
+        return view! { cx,
+        utils::Alert(type_=utils::AlertType::Danger, msg="URL protocol must be http or https".to_string())
+        };
+    }
+
+    let url = if use_proxy {
+        format!("{}{}", CORS_PROXY_URL, url)
+    } else {
+        url.to_string()
+    };
+
     let resp = reqwest_wasm::get(url).await;
 
     let resp = match resp {
