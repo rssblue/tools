@@ -2,6 +2,7 @@ use crate::components::utils;
 use sycamore::prelude::*;
 use sycamore::suspense::{use_transition, Suspense};
 use url::Url;
+use wasm_bindgen::JsValue;
 
 #[derive(Debug, Clone)]
 struct ProgramError<G: Html> {
@@ -201,6 +202,24 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
 #[component(inline_props)]
 pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) -> View<G> {
     const CORS_PROXY_URL: &str = "https://proxy.rssblue.com?url=";
+
+    // Set 'url' query parameter.
+    if let Some(window) = web_sys::window() {
+        if let Ok(href) = window.location().href() {
+            if let Ok(web_url) = web_sys::Url::new(&href) {
+                web_url.search_params().set("url", &url);
+                let new_url = web_url.href();
+                if let Ok(history) = window.history() {
+                    if history
+                        .push_state_with_url(&JsValue::NULL, "", Some(&new_url))
+                        .is_err()
+                    {
+                        web_sys::console::error_1(&"Error setting query parameter".into());
+                    }
+                }
+            }
+        }
+    }
 
     let url = match Url::parse(&url) {
         Ok(url) => url,
