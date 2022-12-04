@@ -1643,33 +1643,31 @@ fn analyze_podcast_license(license: &badpod::podcast::License) -> Node {
 }
 
 fn analyze_podcast_images(images: &badpod::podcast::Images) -> Node {
-    let mut img_strs = Vec::new();
+    let mut attributes = Vec::new();
+    let mut errors = Vec::new();
 
-    for image in &images.srcset {
-        match image {
-            badpod::podcast::Image::Ok(url, width) => {
+    match &images.srcset {
+        badpod::podcast::ImageSrcSet::Ok(image_data) => {
+            let mut img_strs = Vec::new();
+            for (url, width) in image_data {
                 img_strs.push(format!("{{ url: \"{}\", width: {} }}", url, width));
             }
-            badpod::podcast::Image::Other((s, reason)) => {
-                let errors = vec![Error::InvalidAttributeWithReason(
-                    "srcset".to_string(),
-                    s.to_string(),
-                    reason.to_string(),
-                )];
-                return Node {
-                    name: TagName(Some(Namespace::Podcast), "images".to_string()),
-                    errors,
-                    ..Default::default()
-                };
-            }
+            let value = format!("[ {} ]", img_strs.join(", "));
+            attributes.push(("srcset".to_string(), Value::Object(value)));
+        }
+        badpod::podcast::ImageSrcSet::Other((s, reason)) => {
+            errors.push(Error::InvalidAttributeWithReason(
+                "srcset".to_string(),
+                s.to_string(),
+                reason.to_string(),
+            ));
         }
     }
-    let value = format!("[{}]", img_strs.join(", "));
-    let attributes = vec![("srcset".to_string(), Value::Object(value))];
 
     Node {
         name: TagName(Some(Namespace::Podcast), "images".to_string()),
         attributes,
+        errors,
         ..Default::default()
     }
 }
