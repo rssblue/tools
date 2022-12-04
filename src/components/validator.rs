@@ -23,7 +23,7 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     let program_error = create_signal(cx, _program_error);
 
     let mut url_in_url = String::new();
-    // Get 'op3-url' query parameter.
+    // Get 'url' query parameter.
     if let Some(window) = web_sys::window() {
         if let Ok(href) = window.location().href() {
             if let Ok(url) = web_sys::Url::new(&href) {
