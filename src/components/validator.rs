@@ -106,21 +106,19 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     h2(class="mt-3 text-gray-500") { "Make sure your Podcasting 2.0 feed is valid." }
     p(class="mt-7") {
         utils::Link(url="https://podcastindex.org/namespace/1.0".to_string(), text="Podcast namespace initiative".to_string(), new_tab=true)
-        " is a community effort to create modern podcasting standards. If you utilize any of the new XML elements, this tool will check for any mistakes in your feed."
+        " is a community effort to create modern podcasting standards. If you utilize any of the new "
+        code { "<podcast:*>" }
+        " XML tags, this tool will check for any mistakes in your feed."
     }
 
     p(class="mb-7") {
-        "This validator only checks the podcast namespace elements and only analyzes the text content of the feed. Alternative validators you can try include "
+        "This validator only checks the " em { "podcast namespace" } " elements and only analyzes the " em { "feed" } " itself. For other namespaces and media checks, you can try "
             utils::Link(url="https://validator.livewire.io/".to_string(), text="Livewire Podcast Validator".to_string(), new_tab=true)
             ", "
         utils::Link(url="https://www.castfeedvalidator.com/".to_string(), text="Cast Feed Validator".to_string(), new_tab=true)
         ", and "
         utils::Link(url="https://podba.se/validate/".to_string(), text="Podbase Podcast Validator".to_string(), new_tab=true)
         "."
-    }
-
-    div(class="my-7") {
-        utils::AlertHTML(type_=utils::AlertType::Warning, msg=view! {cx, "This tool is being actively developed and may not work as expected. Please report any issues " utils::Link(url="https://github.com/rssblue/tools/issues".to_string(), text="on GitHub".to_string(), new_tab=true) "." })
     }
 
     form(class="mb-4 space-y-3") {
