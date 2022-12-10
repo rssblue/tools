@@ -161,20 +161,29 @@ fn plot_bars<G: Html>(cx: Scope<'_>, data: &HashMap<String, usize>) -> View<G> {
 
 async fn fetch_op3(
     url: String,
-    start_time: DateTime<Utc>,
-    end_time: DateTime<Utc>,
+    start_time: Option<DateTime<Utc>>,
+    end_time: Option<DateTime<Utc>>,
     limit: usize,
     token: String,
 ) -> Result<Vec<Row>, String> {
     let client = reqwest_wasm::Client::new();
+
+    let mut request_url = format!("https://op3.dev/api/1/redirect-logs?format=json&limit={limit}&url={url}&_from=rssblue-plot-op3");
+    if let Some(start_time) = start_time {
+        request_url += &format!(
+            "&start={}",
+            start_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+        );
+    }
+    if let Some(end_time) = end_time {
+        request_url += &format!(
+            "&end={}",
+            end_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+        );
+    }
+
     let resp = client
-        .get(
-        format!("https://op3.dev/api/1/redirect-logs?format=json&limit={limit}&url={url}&start={start_time}&end={end_time}&_from=rssblue-plot-op3",
-                url=url,
-                start_time=start_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
-                end_time=end_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
-                ),
-                )
+        .get(request_url)
         .header("Authorization", format!("Bearer {}", token))
         .send()
         .await
@@ -271,32 +280,53 @@ fn filter_rows(rows: Vec<Row>) -> Vec<Row> {
 async fn get_results(
     url: String,
     token: String,
-    num_days: usize,
-    period_num_minutes: usize,
-    num_periods: usize,
+    num_days: Option<usize>,
+    period_num_minutes: Option<usize>,
+    num_periods: Option<usize>,
     limit: usize,
 ) -> Result<Vec<Row>, String> {
-    let start_time = Utc::now() - Duration::days(num_days as i64);
+    let start_time = num_days.map(|num_days| Utc::now() - Duration::days(num_days as i64));
     let end_time = Utc::now();
-    let period_duration = Duration::minutes(period_num_minutes as i64);
-    let periods = random_periods(num_periods, period_duration, start_time, end_time);
 
-    // Fetch OP3 for each period concurrently and combine.
-    let results = futures::future::join_all(periods.iter().map(|(start, end)| {
-        let url = url.clone();
-        let token = token.clone();
-        async move { fetch_op3(url.to_string(), *start, *end, limit, token).await }
-    }))
-    .await;
+    let period_duration =
+        period_num_minutes.map(|period_num_minutes| Duration::minutes(period_num_minutes as i64));
+
+    let periods = match (start_time, num_periods, period_duration) {
+        (Some(start_time), Some(num_periods), Some(period_duration)) => {
+            random_periods(num_periods, period_duration, start_time, end_time)
+        }
+        _ => vec![],
+    };
+
     let mut rows = Vec::new();
-    for result in results {
+    if periods.is_empty() {
+        let result = fetch_op3(url, start_time, Some(end_time), limit, token).await;
         match result {
-            Ok(rows_) => rows.extend(rows_),
-            Err(e) => {
-                return Err(e);
+            Ok(rows_) => rows = rows_,
+            Err(e) => return Err(e),
+        };
+    } else {
+        // Fetch OP3 for each period concurrently and combine.
+        let results =
+            futures::future::join_all(
+                periods.iter().map(|(start, end)| {
+                    let url = url.clone();
+                    let token = token.clone();
+                    async move {
+                        fetch_op3(url.to_string(), Some(*start), Some(*end), limit, token).await
+                    }
+                }),
+            )
+            .await;
+        for result in results {
+            match result {
+                Ok(rows_) => rows.extend(rows_),
+                Err(e) => {
+                    return Err(e);
+                }
             }
         }
-    }
+    };
 
     Ok(rows)
 }
@@ -335,41 +365,28 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String, token: String) -
         }
     }
 
-    const NUM_DAYS: usize = 7;
-    let mut period_num_minutes = NUM_DAYS * 24 * 60;
-    let mut num_periods = 1;
+    let mut num_periods = None;
+    let mut num_days = None;
+    let mut period_num_minutes = None;
 
-    let mut rows = match get_results(
-        url.to_string(),
-        token.to_owned(),
-        NUM_DAYS,
-        period_num_minutes,
-        num_periods,
-        REQUEST_LIMIT,
-    )
-    .await
-    {
-        Ok(rows) => rows,
-        Err(e) => {
-            return view! {cx,
-            utils::Alert(type_=utils::AlertType::Danger, msg=format!("Error: {}.", e))
-            }
-        }
-    };
-    if rows.len() >= REQUEST_LIMIT {
-        const PERIOD_NUM_MINUTES: usize = 30;
-        const NUM_PERIODS: usize = 100;
-
-        period_num_minutes = PERIOD_NUM_MINUTES;
-        num_periods = NUM_PERIODS;
+    let mut rows = Vec::new();
+    let config = vec![
+        (None, None, None, REQUEST_LIMIT),    // Since beginning.
+        (Some(7), None, None, REQUEST_LIMIT), // Last 7 days.
+        (Some(7), Some(30), Some(100), LOWER_REQUEST_LIMIT), // Random periods in the last 7 days.
+    ];
+    for (num_days_, period_num_minutes_, num_periods_, limit) in config {
+        num_days = num_days_;
+        period_num_minutes = period_num_minutes_;
+        num_periods = num_periods_;
 
         rows = match get_results(
             url.to_string(),
-            token,
-            NUM_DAYS,
+            token.to_owned(),
+            num_days,
             period_num_minutes,
             num_periods,
-            LOWER_REQUEST_LIMIT,
+            limit,
         )
         .await
         {
@@ -380,6 +397,10 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String, token: String) -
                 }
             }
         };
+
+        if rows.len() < REQUEST_LIMIT {
+            break;
+        }
     }
 
     let num_original_rows = rows.len();
@@ -412,15 +433,23 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String, token: String) -
         }
     }
 
-    let msg = if num_periods == 1 {
-        format!("Below you can find data over the last {NUM_DAYS} days.")
-    } else {
-        format!("Below you can find data from {num_periods} randomly sampled {period_num_minutes}-minute blocks over the last {NUM_DAYS} days.")
+    let msg = match (num_periods, num_days, period_num_minutes) {
+        (None, None, None) => {
+            "Below you can find data since the beginning of the file being routed through OP3."
+                .to_string()
+        }
+        (None, Some(num_days), _) => {
+            format!("Below you can find data over the last {num_days} days.")
+        }
+        (Some(num_periods), Some(num_days), Some(period_num_minutes)) => {
+            format!("Below you can find data from {num_periods} randomly sampled {period_num_minutes}-minute blocks over the last {num_days} days.")
+        }
+        // Shouldn't happen.
+        _ => "".to_string(),
     };
-    let extra_msg = if num_periods == 1 {
-        ""
-    } else {
-        " These are indicative of but not equivalent to the total number of downloads because we are randomly sampling only a fraction of all requests, and there are also limits on how many requests are returned by OP3."
+    let extra_msg = match num_periods {
+        None | Some(1) => "",
+        Some(_) => " These are indicative of but not equivalent to the total number of downloads because we are randomly sampling only a fraction of all requests, and there are also limits on how many requests are returned by OP3."
     };
 
     let info: View<G> = View::new_fragment(vec![view! {cx,
