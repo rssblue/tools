@@ -7,6 +7,7 @@ use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 use sycamore::prelude::*;
 use sycamore::suspense::{use_transition, Suspense};
+use wasm_bindgen::JsValue;
 
 const OP3_PREFIX: &str = "https://op3.dev/e";
 
@@ -316,6 +317,24 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String, token: String) -
     };
     url.set_query(None);
 
+    // Set 'op3-url' query parameter.
+    if let Some(window) = web_sys::window() {
+        if let Ok(href) = window.location().href() {
+            if let Ok(web_url) = web_sys::Url::new(&href) {
+                web_url.search_params().set("op3-url", url.as_ref());
+                let new_url = web_url.href();
+                if let Ok(history) = window.history() {
+                    if history
+                        .push_state_with_url(&JsValue::NULL, "", Some(&new_url))
+                        .is_err()
+                    {
+                        web_sys::console::error_1(&"Error setting query parameter".into());
+                    }
+                }
+            }
+        }
+    }
+
     const NUM_DAYS: usize = 7;
     let mut period_num_minutes = NUM_DAYS * 24 * 60;
     let mut num_periods = 1;
@@ -480,6 +499,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     let input_cls = create_signal(cx, String::new());
     let token = create_signal(cx, String::new());
     let settings_open = create_signal(cx, false);
+    let wrong_query_op3_url = create_signal(cx, false);
 
     // Initialize OP3 token.
     if let Some(window) = web_sys::window() {
@@ -518,6 +538,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
 
     create_effect(cx, move || {
         if *fetching_data.get() {
+            wrong_query_op3_url.set(false);
             show_data.set(true);
         }
     });
@@ -525,8 +546,10 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     create_effect(cx, move || fetching_data.set(transition.is_pending()));
 
     // Check if URL start with correct prefix.
-    let op3_url_wrong_url = !op3_url.is_empty() && !op3_url.starts_with(OP3_PREFIX);
-    if !op3_url_wrong_url {
+    if !op3_url.is_empty() && !op3_url.starts_with(OP3_PREFIX) {
+        wrong_query_op3_url.set(true);
+    }
+    if !*wrong_query_op3_url.get() {
         // Strip prefix from URL.
         if let Some(url) = op3_url.strip_prefix(OP3_PREFIX) {
             url_str.set(url.to_string());
@@ -558,7 +581,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
         " what kinds of data you would like to see visualized."
     }
 
-    (if op3_url_wrong_url {
+    (if *wrong_query_op3_url.get() {
         view!{ cx,
         div(class="my-4") {
             utils::Alert(type_=utils::AlertType::Danger, msg=format!("URL query parameter <code class='font-mono'>op3-url</code> should start with “{OP3_PREFIX}”."))
