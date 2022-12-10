@@ -310,7 +310,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String, token: String) -
         Ok(url) => url,
         Err(_) => {
             return view! {cx,
-            utils::Alert(type_=utils::AlertType::Warning, msg=format!("Could not parse the URL."))
+            utils::Alert(type_=utils::AlertType::Danger, msg=format!("Could not parse the URL."))
             }
         }
     };
@@ -333,7 +333,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String, token: String) -
         Ok(rows) => rows,
         Err(e) => {
             return view! {cx,
-            utils::Alert(type_=utils::AlertType::Warning, msg=format!("Error: {}.", e))
+            utils::Alert(type_=utils::AlertType::Danger, msg=format!("Error: {}.", e))
             }
         }
     };
@@ -357,7 +357,7 @@ pub async fn Geography<'a, G: Html>(cx: Scope<'a>, url: String, token: String) -
             Ok(rows) => rows,
             Err(e) => {
                 return view! {cx,
-                utils::Alert(type_=utils::AlertType::Warning, msg=format!("Error: {}.", e))
+                utils::Alert(type_=utils::AlertType::Danger, msg=format!("Error: {}.", e))
                 }
             }
         };
@@ -561,7 +561,7 @@ pub fn PlotOp3<G: Html>(cx: Scope<'_>) -> View<G> {
     (if op3_url_wrong_url {
         view!{ cx,
         div(class="my-4") {
-            utils::Alert(type_=utils::AlertType::Warning, msg=format!("URL query parameter <code class='font-mono'>op3-url</code> should start with “{OP3_PREFIX}”."))
+            utils::Alert(type_=utils::AlertType::Danger, msg=format!("URL query parameter <code class='font-mono'>op3-url</code> should start with “{OP3_PREFIX}”."))
         }}
     } else {
         view!{ cx, }
