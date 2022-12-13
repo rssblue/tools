@@ -18,9 +18,11 @@ enum Value {
 }
 
 fn md_to_html(md: &str) -> String {
-    let html = comrak::markdown_to_html(md, &comrak::ComrakOptions::default())
-        .trim()
-        .to_string();
+    let mut options = comrak::ComrakOptions::default();
+    options.parse.smart = true;
+
+    let html = comrak::markdown_to_html(md, &options).trim().to_string();
+
     if html.starts_with("<p>") && html.ends_with("</p>") {
         html.trim_start_matches("<p>")
             .trim_end_matches("</p>")
