@@ -323,7 +323,6 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) 
 
 #[derive(PartialEq, Debug, Clone)]
 enum Namespace {
-    Itunes,
     Podcast,
 }
 
@@ -352,7 +351,7 @@ enum Error {
 const NODE_VALUE: &str = "node value";
 
 #[component(inline_props)]
-pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
+fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
     match error {
         Error::MissingAttribute(attr) => {
             if attr == NODE_VALUE {
@@ -474,7 +473,6 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
 impl std::fmt::Display for TagName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TagName(Some(Namespace::Itunes), x) => write!(f, "itunes:{}", x),
             TagName(Some(Namespace::Podcast), x) => write!(f, "podcast:{}", x),
             TagName(None, x) => write!(f, "{}", x),
         }
@@ -1087,7 +1085,6 @@ fn analyze_podcast_value(v4v_value: &badpod::podcast::Value) -> Node {
 }
 
 fn analyze_podcast_value_recipient(recipient: &badpod::podcast::ValueRecipient) -> Node {
-    let mut children = Vec::new();
     let mut errors = Vec::new();
     let mut attributes = Vec::new();
 
@@ -1169,7 +1166,7 @@ fn analyze_podcast_value_recipient(recipient: &badpod::podcast::ValueRecipient) 
 
     Node {
         name: TagName(Some(Namespace::Podcast), "valueRecipient".to_string()),
-        children,
+        children: vec![],
         errors,
         attributes,
     }
@@ -1286,7 +1283,7 @@ fn analyze_podcast_medium(medium: &badpod::podcast::Medium) -> Node {
         badpod::podcast::Medium::Other((s, reason)) => {
             errors.push(Error::InvalidAttributeWithReason(
                 NODE_VALUE.to_string(),
-                medium.to_string(),
+                s.to_string(),
                 reason.to_string(),
             ));
         }

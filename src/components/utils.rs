@@ -1,5 +1,5 @@
 use sycamore::prelude::*;
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsCast;
 
 pub enum AlertType {
     Success,
@@ -61,7 +61,6 @@ pub enum Icon {
     ChevronRight,
     Info,
     Settings,
-    X,
     XCircle,
 }
 
@@ -79,7 +78,6 @@ impl std::fmt::Display for Icon {
             }
             Self::Info => include_str!("../../assets/svg/feather-icons/info.svg"),
             Self::Settings => include_str!("../../assets/svg/feather-icons/settings.svg"),
-            Self::X => include_str!("../../assets/svg/feather-icons/x.svg"),
             Self::XCircle => include_str!("../../assets/svg/feather-icons/x-circle.svg"),
         };
         write!(f, "{svg}")
