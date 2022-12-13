@@ -309,7 +309,7 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) 
         Ok(x) => x,
         Err(e) => {
             return view! {cx,
-            utils::Alert(type_=utils::AlertType::Danger, msg=format!("Could not parse the feed ({e:?})"))
+            utils::Alert(type_=utils::AlertType::Danger, msg=format!("Could not parse the feed ({e})"))
             }
         }
     };
