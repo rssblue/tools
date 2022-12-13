@@ -36,7 +36,7 @@ log = "0.4.17"
 itertools = "0.10.5"
 rand = "0.8.5"
 futures = "0.3.25"
-badpod = "0.6.0"
+badpod = "0.7.0"
 wasm-bindgen-futures = "0.4.33"
 
 [profile.release]
