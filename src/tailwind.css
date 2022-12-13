@@ -113,6 +113,10 @@
     @apply underline decoration-primary-500 hover:decoration-transparent hover:text-primary-500 underline-offset-1;
   }
 
+  span.from-md > a {
+    @apply link;
+  }
+
   .attr {
     @apply font-bold;
   }

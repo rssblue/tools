@@ -399,6 +399,7 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                 span(class="text-gray-500") {
                     ": "
                         span(
+                            class="from-md",
                             dangerously_set_inner_html=&md_to_html(&reason),
                             ){}
                 }
@@ -414,6 +415,7 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                     span(class="text-gray-500") {
                         ": "
                         span(
+                            class="from-md",
                             dangerously_set_inner_html=&md_to_html(&reason),
                             ){}
 
