@@ -17,6 +17,19 @@ enum Value {
     Url(String),
 }
 
+fn md_to_html(md: &str) -> String {
+    let html = comrak::markdown_to_html(md, &comrak::ComrakOptions::default())
+        .trim()
+        .to_string();
+    if html.starts_with("<p>") && html.ends_with("</p>") {
+        html.trim_start_matches("<p>")
+            .trim_end_matches("</p>")
+            .to_string()
+    } else {
+        html
+    }
+}
+
 #[component]
 pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     let _program_error: Option<ProgramError<G>> = None;
@@ -383,7 +396,9 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                 }
                 span(class="text-gray-500") {
                     ": "
-                        (reason)
+                        span(
+                            dangerously_set_inner_html=&md_to_html(&reason),
+                            ){}
                 }
                 }
             } else {
@@ -396,7 +411,10 @@ pub fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
                     }
                     span(class="text-gray-500") {
                         ": "
-                            (reason)
+                        span(
+                            dangerously_set_inner_html=&md_to_html(&reason),
+                            ){}
+
                     }
                 }
             }

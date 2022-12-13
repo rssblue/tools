@@ -38,6 +38,7 @@ rand = "0.8.5"
 futures = "0.3.25"
 badpod = "0.7.0"
 wasm-bindgen-futures = "0.4.33"
+comrak = "0.15.0"
 
 [profile.release]
 panic = "abort"
