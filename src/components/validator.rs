@@ -701,12 +701,6 @@ fn analyze_channel(channel: &badpod::Channel) -> Node {
     for v4v_value in &channel.podcast_value {
         children.push(analyze_podcast_value(v4v_value));
     }
-    if channel.podcast_value.len() > 1 {
-        errors.push(Error::MultipleChildren(TagName(
-            Some(Namespace::Podcast),
-            "value".to_string(),
-        )));
-    }
 
     for images in &channel.podcast_images {
         children.push(analyze_podcast_images(images));
@@ -749,12 +743,6 @@ fn analyze_item(item: &badpod::Item) -> Node {
 
     for v4v_value in &item.podcast_value {
         children.push(analyze_podcast_value(v4v_value));
-    }
-    if item.podcast_value.len() > 1 {
-        errors.push(Error::MultipleChildren(TagName(
-            Some(Namespace::Podcast),
-            "value".to_string(),
-        )));
     }
 
     for person in &item.podcast_person {
@@ -907,12 +895,6 @@ fn analyze_podcast_live_item(item: &badpod::podcast::LiveItem) -> Node {
 
     for v4v_value in &item.podcast_value {
         children.push(analyze_podcast_value(v4v_value));
-    }
-    if item.podcast_value.len() > 1 {
-        errors.push(Error::MultipleChildren(TagName(
-            Some(Namespace::Podcast),
-            "value".to_string(),
-        )));
     }
 
     for person in &item.podcast_person {
