@@ -17,6 +17,10 @@ pub fn Index<G: Html>(cx: Scope) -> View<G> {
             class=format!("btn btn-primary"),
             href="/validator",
             ) { "Validator" }
+        a(
+            class=format!("btn btn-primary"),
+            href="/chapters",
+            ) { "Chapters" }
     }
     }
 }

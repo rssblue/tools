@@ -14,6 +14,8 @@ enum AppRoutes {
     PlotOp3,
     #[to("/validator")]
     Validator,
+    #[to("/chapters")]
+    Chapters,
     #[not_found]
     NotFound,
 }
@@ -48,6 +50,7 @@ fn switch<'a, G: Html>(cx: Scope<'a>, route: &'a ReadSignal<AppRoutes>) -> View<
                 AppRoutes::PodcastGuid => view!{ cx, components::PodcastGuid{}},
                 AppRoutes::PlotOp3 => view!{ cx, components::PlotOp3{}},
                 AppRoutes::Validator => view!{ cx, components::Validator{}},
+                AppRoutes::Chapters => view!{ cx, components::Chapters{}},
                 AppRoutes::NotFound => view! { cx,
                     "404 Not Found"
                 },

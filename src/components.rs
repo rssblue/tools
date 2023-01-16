@@ -12,6 +12,9 @@ pub use plot_op3::PlotOp3;
 mod validator;
 pub use validator::Validator;
 
+mod chapters;
+pub use chapters::Chapters;
+
 pub mod utils;
 
 #[derive(Prop)]
