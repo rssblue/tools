@@ -2,6 +2,7 @@ use sycamore::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{KeyboardEvent, Event};
 use uuid::Uuid;
+use crate::components::utils;
 use wasm_bindgen::JsValue;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -11,9 +12,34 @@ struct Chapter {
     start_time: f64,
 }
 
+#[derive(Debug, Clone, PartialEq, Default)]
+enum AudioState {
+    #[default]
+    Paused,
+    Playing,
+}
+
+impl AudioState {
+    fn toggle_icon(&self) -> String {
+        match self {
+            AudioState::Paused => utils::Icon::Play.to_string().replace("{{ class }}", "h-5 stroke-2"),
+            AudioState::Playing => utils::Icon::Pause.to_string().replace("{{ class }}", "h-5 stroke-2"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+struct Audio {
+    url: RcSignal<String>,
+    state: RcSignal<AudioState>,
+    current_time: RcSignal<f64>,
+    duration: RcSignal<f64>,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct AppState {
     chapters: RcSignal<Vec<RcSignal<Chapter>>>,
+    audio: RcSignal<Audio>,
 }
 
 impl AppState {
@@ -34,6 +60,12 @@ impl AppState {
 pub fn Chapters<G: Html>(cx: Scope) -> View<G> {
     let app_state = AppState {
         chapters: Default::default(),
+        audio: create_rc_signal(Audio {
+            url: create_rc_signal("https://file-examples.com/storage/fe2879c03363c669a9ef954/2017/11/file_example_MP3_700KB.mp3".to_string()),
+            state: create_rc_signal(AudioState::Paused),
+            current_time: create_rc_signal(0.0),
+            duration: create_rc_signal(0.0),
+        }),
     };
     let app_state = provide_context(cx, app_state);
 
@@ -46,6 +78,8 @@ pub fn Chapters<G: Html>(cx: Scope) -> View<G> {
         p(class="my-7") {
             "It's easy!"
         }
+
+        (view! { cx, AudioHTML(audio=app_state.audio.clone()) })
 
         HeaderHTML {}
             (if *chapters_empty.get() {
@@ -167,21 +201,105 @@ fn ChapterHTML<G: Html>(cx: Scope, chapter: RcSignal<Chapter>) -> View<G> {
                 on:keyup=handle_keyup,
             )
 
-            span(class="ml-auto text-gray-500") { (display_time(start_time())) }
+            // span(class="ml-auto text-gray-500") { (display_time(start_time())) }
 
-        button(
-            class="ml-2 px-2 px-2 bg-danger-500 hover:bg-danger-600 text-white rounded",
-            on:click=handle_destroy
-        ) { "x" }
+            button(
+                class="ml-2 px-2 px-2 bg-danger-500 hover:bg-danger-600 text-white rounded",
+                on:click=handle_destroy
+            ) { "x" }
     }
 }
 }
 
-fn display_time(seconds: f64) -> String {
-    let hours = seconds / 3600.0;
-    let minutes = (seconds % 3600.0) / 60.0;
 
-    let seconds = seconds % 60.0;
+#[component(inline_props)]
+fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
+    const TIMELINE_RANGE: f64 = 1000.0;
 
-    format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
+    let audio = create_ref(cx, audio);
+    let audio_ref = create_node_ref(cx);
+
+    let current_time = || audio.get().current_time.clone();
+    let state = || audio.get().state.clone();
+    let duration = || audio.get().duration.clone();
+
+    let timeline_ref = create_node_ref(cx);
+
+    let handle_toggle = move |_| {
+        let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
+        match *state().get() {
+            AudioState::Paused => {
+                audio_el.play().unwrap();
+                state().set(AudioState::Playing);
+            }
+            AudioState::Playing => {
+                audio_el.pause();
+                state().set(AudioState::Paused);
+            }
+        }
+    };
+
+    let handle_change_seek = move |event: Event| {
+        let input = event.target().unwrap().unchecked_into::<web_sys::HtmlInputElement>();
+        let value = input.value_as_number();
+        let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
+        let duration = audio_el.duration();
+        let new_time = (value / TIMELINE_RANGE) * duration;
+        audio_el.set_current_time(new_time);
+    };
+
+    let handle_timeupdate = move |_| {
+        let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
+        let audio_current_time = audio_el.current_time();
+        let audio_duration = audio_el.duration();
+        duration().set(audio_duration);
+        let percentage = (audio_current_time / audio_duration) * TIMELINE_RANGE;
+        let timeline = timeline_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlInputElement>();
+        timeline.set_value(&percentage.to_string());
+        current_time().set(audio_current_time);
+    };
+
+    let handle_ended = move |_| {
+        state().set(AudioState::Paused);
+    };
+
+    view! { cx,
+        div(class="flex flex-row items-center") {
+            button(on:click=handle_toggle) { span(dangerously_set_inner_html=state().get().toggle_icon().as_str()) }
+            div(class="font-mono mx-2") {
+                (seconds_to_timestamp(*current_time().get(), *duration().get()))
+                    span(class="text-gray-400") {
+                    "."
+                        (tenths_of_seconds(*current_time().get()))
+                }
+            }
+            input(type="range", min="0", max=TIMELINE_RANGE, value="0", on:input=handle_change_seek, ref=timeline_ref,
+                class="flex-grow")
+                audio(
+                    ref=audio_ref,
+                    src=audio.get().url.get().as_str(),
+                    on:timeupdate=handle_timeupdate,
+                    on:ended=handle_ended,
+                    controls=false,
+                )
+        }
+    }
+}
+
+fn seconds_to_timestamp(seconds: f64, duration: f64) -> String {
+    let seconds = seconds as u64;
+    if duration > 3600.0 {
+        format!(
+            "{:02}:{:02}:{:02}",
+            seconds / 3600,
+            (seconds % 3600) / 60,
+            seconds % 60
+        )
+    } else {
+        format!("{:02}:{:02}", seconds / 60, seconds % 60)
+    }
+}
+
+fn tenths_of_seconds(seconds: f64) -> u8 {
+    (seconds * 10.0) as u8 % 10
 }
