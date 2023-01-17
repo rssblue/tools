@@ -103,15 +103,15 @@ fn ChaptersListHTML<G: Html>(cx: Scope) -> View<G> {
     });
 
     view! { cx,
-        ul {
+        ul(class="not-prose list-none list-outside ml-0 space-y-3") {
             Keyed(
-        iterable=chapters,
-        view=|cx, chapter| view! { cx,
-            ChapterHTML(chapter=chapter)
-        },
-        key=|chapter| chapter.get().id,
-        )
-    }
+                iterable=chapters,
+                view=|cx, chapter| view! { cx,
+                    ChapterHTML(chapter=chapter)
+                },
+                key=|chapter| chapter.get().id,
+            )
+        }
     }
 }
 
@@ -151,27 +151,28 @@ fn ChapterHTML<G: Html>(cx: Scope, chapter: RcSignal<Chapter>) -> View<G> {
         let keyup_event: KeyboardEvent = event.unchecked_into();
         let key = keyup_event.key();
         match key.as_str() {
-        "Enter" => handle_blur(),
-        "Escape" => is_editing.set(false),
-        _ => (),
+            "Enter" => handle_blur(),
+            "Escape" => is_editing.set(false),
+            _ => (),
         }
     };
 
     view! { cx,
         li {
-            button(
-                class="mr-2 px-2 py-1 bg-danger-500 text-white rounded",
-                on:click=handle_destroy
-            ) { "x" }
 
-        input(
-            ref=input_ref,
-            bind:value=input_value,
-            on:blur=move |_| handle_blur(),
-            on:keyup=handle_keyup,
-        )
+            input(
+                ref=input_ref,
+                bind:value=input_value,
+                on:blur=move |_| handle_blur(),
+                on:keyup=handle_keyup,
+            )
 
-        span(class="ml-auto text-gray-500") { (display_time(start_time())) }
+            span(class="ml-auto text-gray-500") { (display_time(start_time())) }
+
+        button(
+            class="ml-2 px-2 px-2 bg-danger-500 hover:bg-danger-600 text-white rounded",
+            on:click=handle_destroy
+        ) { "x" }
     }
 }
 }
