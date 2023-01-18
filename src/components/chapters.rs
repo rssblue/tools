@@ -83,6 +83,8 @@ pub fn Chapters<G: Html>(cx: Scope) -> View<G> {
             "It's easy!"
         }
 
+        div(class="grid grid-cols-1 space-y-5") {
+
         (view! { cx, AudioHTML(audio=app_state.audio.clone()) })
 
         HeaderHTML {}
@@ -95,6 +97,7 @@ pub fn Chapters<G: Html>(cx: Scope) -> View<G> {
                         ChaptersListHTML {}
                     }
                 })
+        }
     }
 }
 
@@ -111,7 +114,6 @@ fn HeaderHTML<G: Html>(cx: Scope) -> View<G> {
             title = title.trim().to_string();
 
             if !title.is_empty() {
-                web_sys::console::log_1(&JsValue::from_str(&format!("Title: {}", title)));
                 app_state.add_chapter(title, 0.0);
                 input_value.set("".to_string());
             }
@@ -251,14 +253,13 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
 
     let handle_start_drag = move |event: Event| {
         let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
-        let (x, _) = mouse_position(event);
-        let offset = x - handle.get_attribute("cx").unwrap().parse::<f64>().unwrap();
-        handle.set_attribute("data-offset", &offset.to_string()).unwrap();
+        handle.set_attribute("data-dragging", "true").unwrap();
+        handle.set_attribute("class", "fill-primary-700 cursor-pointer").unwrap();
     };
 
     let handle_drag = move |event: Event| {
         let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
-        if let Some(offset) = handle.get_attribute("data-offset") {
+        if handle.get_attribute("data-dragging").is_some() {
             let (mouse_x, _) = mouse_position(event);
 
             let handle_x = mouse_x_to_handle_x(mouse_x);
@@ -273,7 +274,8 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
 
     let handle_end_drag = move |_| {
         let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
-        handle.remove_attribute("data-offset").unwrap();
+        handle.remove_attribute("data-dragging").unwrap();
+        handle.set_attribute("class", "fill-primary-500 cursor-pointer").unwrap();
     };
 
     let fraction_played = create_signal(cx, 0.0);
@@ -301,9 +303,10 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
             class="w-full grid grid-cols-1 justify-items-center",
             on:mousemove=handle_drag,
             on:mouseup=handle_end_drag,
+            on:mouseleave=handle_end_drag,
         ) {
             svg(
-                class="w-full h-20",
+                class="w-full h-7",
             ) {
                 g {
                     g {
@@ -338,7 +341,7 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
     )
         div(class="flex flex-row items-center") {
         button(on:click=handle_toggle) { span(dangerously_set_inner_html=state().get().toggle_icon().as_str()) }
-        div(class="font-mono mx-2") {
+        div(class="font-mono mx-2 select-none") {
             (seconds_to_timestamp(*current_time().get(), *duration().get()))
                 span(class="text-gray-400") {
                 "."
