@@ -5,6 +5,10 @@ use uuid::Uuid;
 use crate::components::utils;
 use wasm_bindgen::JsValue;
 
+const TIMELINE_RANGE: f64 = 1000.0;
+const TIMELINE_HEIGHT: f64 = 5.0;
+const HANDLE_RADIUS: f64 = 8.0;
+
 #[derive(Debug, Clone, PartialEq)]
 struct Chapter {
     id: Uuid,
@@ -201,8 +205,6 @@ fn ChapterHTML<G: Html>(cx: Scope, chapter: RcSignal<Chapter>) -> View<G> {
                 on:keyup=handle_keyup,
             )
 
-            // span(class="ml-auto text-gray-500") { (display_time(start_time())) }
-
             button(
                 class="ml-2 px-2 px-2 bg-danger-500 hover:bg-danger-600 text-white rounded",
                 on:click=handle_destroy
@@ -214,10 +216,6 @@ fn ChapterHTML<G: Html>(cx: Scope, chapter: RcSignal<Chapter>) -> View<G> {
 
 #[component(inline_props)]
 fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
-    const TIMELINE_RANGE: f64 = 1000.0;
-    const TIMELINE_HEIGHT: f64 = 5.0;
-    const HANDLE_RADIUS: f64 = 7.0;
-
     let audio = create_ref(cx, audio);
     let audio_ref = create_node_ref(cx);
 
@@ -225,8 +223,7 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
     let state = || audio.get().state.clone();
     let duration = || audio.get().duration.clone();
 
-    let timeline_ref = create_node_ref(cx);
-    let new_timeline_ref = create_node_ref(cx);
+    // let timeline_ref = create_node_ref(cx);
     let handle_ref = create_node_ref(cx);
 
     let handle_toggle = move |_| {
@@ -254,7 +251,7 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
 
     let handle_start_drag = move |event: Event| {
         let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
-        let (x, _) = get_mouse_position(event).unwrap();
+        let (x, _) = mouse_position(event);
         let offset = x - handle.get_attribute("cx").unwrap().parse::<f64>().unwrap();
         handle.set_attribute("data-offset", &offset.to_string()).unwrap();
     };
@@ -262,17 +259,15 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
     let handle_drag = move |event: Event| {
         let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
         if let Some(offset) = handle.get_attribute("data-offset") {
-            if let Ok((x, _)) = get_mouse_position(event) {
-                let offset = offset.parse::<f64>().unwrap();
-                let mut new_x = x - offset;
-                new_x = new_x.max(HANDLE_RADIUS);
-                // Get actual width
-                let new_timeline = new_timeline_ref.get::<DomNode>().unchecked_into::<web_sys::Element>();
-                let bounding_client_rect = new_timeline.get_bounding_client_rect();
-                let width = bounding_client_rect.width();
-                new_x = new_x.min(width + HANDLE_RADIUS);
-                handle.set_attribute("cx", &new_x.to_string()).unwrap();
-            }
+            let (mouse_x, _) = mouse_position(event);
+
+            let handle_x = mouse_x_to_handle_x(mouse_x);
+            handle.set_attribute("cx", &handle_x.to_string()).unwrap();
+
+            let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
+            let duration = audio_el.duration();
+            let seconds = handle_x_to_seconds(handle_x, duration);
+            audio_el.set_current_time(seconds);
         }
     };
 
@@ -281,29 +276,25 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
         handle.remove_attribute("data-offset").unwrap();
     };
 
-    let percent_played = create_signal(cx, 0.0);
+    let fraction_played = create_signal(cx, 0.0);
 
     let handle_timeupdate = move |_| {
         let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
         let audio_current_time = audio_el.current_time();
         let audio_duration = audio_el.duration();
         duration().set(audio_duration);
-        let value = (audio_current_time / audio_duration) * TIMELINE_RANGE;
-        let timeline = timeline_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlInputElement>();
-        timeline.set_value(&value.to_string());
+        fraction_played.set(audio_current_time / audio_duration);
+
         current_time().set(audio_current_time);
 
-        // let ratio = value / TIMELINE_RANGE;
-        // let thumb_width = 30.0;
-        // let x = thumb_width/2.0 + (canvas_el.width() as f64 - thumb_width) * ratio;
-        percent_played.set(value/TIMELINE_RANGE*100.0);
-        web_sys::console::log_1(&format!("{}%", percent_played.get()).into());
+        let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
+        let handle_x = seconds_to_handle_x(audio_current_time, audio_duration);
+        handle.set_attribute("cx", &handle_x.to_string()).unwrap();
     };
 
     let handle_ended = move |_| {
         state().set(AudioState::Paused);
     };
-
 
     view! { cx,
         div(
@@ -311,27 +302,18 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
             on:mousemove=handle_drag,
             on:mouseup=handle_end_drag,
         ) {
-            div(class="grid grid-cols-1 w-full h-20") {
-                div(class="w-full relative") {
-                    div(class="grid grid-cols-1 absolute text-center", style=format!("left: {}%;", percent_played)) {
-                        div(class="w-6 h-6 bg-primary-500 rounded-full -ml-3")
-                            div(class="border-l-2 border-primary-500 h-14")
-                    }
-                }
-            }
-            // Slider
             svg(
                 class="w-full h-20",
             ) {
                 g {
                     g {
                     rect(
+                        id="progress-bar",
                         class="fill-gray-300",
                         x=HANDLE_RADIUS,
                         y=(HANDLE_RADIUS - TIMELINE_HEIGHT/2.0),
                         height=TIMELINE_HEIGHT,
                         width=format!("calc(100% - {}px)", HANDLE_RADIUS*2.0),
-                        ref=new_timeline_ref,
                     )
                     rect(id="track-fill") {}
         }
@@ -339,7 +321,7 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
             circle(
                 class="fill-primary-500 cursor-pointer",
                 r=HANDLE_RADIUS,
-                cx=(2.0*HANDLE_RADIUS),
+                cx=HANDLE_RADIUS,
                 cy=HANDLE_RADIUS,
                 on:mousedown=handle_start_drag,
                 ref=handle_ref,
@@ -347,15 +329,13 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
     }
 }
 }
-    input(type="range", min="0", max=TIMELINE_RANGE, value="0", on:input=handle_change_seek, ref=timeline_ref,
-        class="w-full")
-        audio(
-            ref=audio_ref,
-            src=audio.get().url.get().as_str(),
-            on:timeupdate=handle_timeupdate,
-            on:ended=handle_ended,
-            controls=false,
-        )
+    audio(
+        ref=audio_ref,
+        src=audio.get().url.get().as_str(),
+        on:timeupdate=handle_timeupdate,
+        on:ended=handle_ended,
+        controls=false,
+    )
         div(class="flex flex-row items-center") {
         button(on:click=handle_toggle) { span(dangerously_set_inner_html=state().get().toggle_icon().as_str()) }
         div(class="font-mono mx-2") {
@@ -390,21 +370,81 @@ fn tenths_of_seconds(seconds: f64) -> u8 {
     (seconds * 10.0) as u8 % 10
 }
 
-fn get_mouse_position(event: Event) -> Result<(f64, f64), String> {
+fn mouse_position(event: Event) -> (f64, f64) {
     let mouse_event = event.unchecked_into::<web_sys::MouseEvent>();
-    let target = match mouse_event.target() {
-        Some(target) => target,
-        None => return Err("No target".to_string()),
-    };
+    (mouse_event.client_x() as f64, mouse_event.client_y() as f64)
+}
 
-    let el = target.unchecked_into::<web_sys::SvgGraphicsElement>();
+fn seconds_to_fraction(seconds: f64, duration: f64) -> f64 {
+    seconds / duration
+}
 
-    let ctm = match el.get_screen_ctm() {
-        Some(ctm) => ctm,
-        None => return Err("No ctm".to_string()),
-    };
+fn fraction_to_handle_x(fraction: f64) -> f64 {
+    // The progress bar starts at HANDLE_RADIUS and ends at 100% - HANDLE_RADIUS
+    let progress_bar = web_sys::window().unwrap()
+        .document().unwrap()
+        .get_element_by_id("progress-bar")
+        .unwrap()
+        .unchecked_into::<web_sys::HtmlElement>();
 
-    let x = (mouse_event.client_x() as f32 - ctm.e()) / ctm.a();
-    let y = (mouse_event.client_y() as f32 - ctm.f()) / ctm.d();
-    Ok((x as f64, y as f64))
+    let bounding_client_rect = progress_bar.get_bounding_client_rect();
+    let width = bounding_client_rect.width();
+
+    let handle_x = fraction * width + HANDLE_RADIUS;
+    handle_x
+}
+
+fn mouse_x_to_fraction(mouse_x: f64) -> f64 {
+    let progress_bar = web_sys::window().unwrap()
+        .document().unwrap()
+        .get_element_by_id("progress-bar")
+        .unwrap()
+        .unchecked_into::<web_sys::HtmlElement>();
+
+    let bounding_client_rect = progress_bar.get_bounding_client_rect();
+    let left = bounding_client_rect.left();
+    let width = bounding_client_rect.width();
+
+    let fraction = (mouse_x - left) / width;
+
+    if fraction < 0.0 {
+        return 0.0
+    }
+    if fraction > 1.0 {
+        return 1.0
+    }
+    fraction 
+}
+
+fn mouse_x_to_handle_x(mouse_x: f64) -> f64 {
+    let fraction = mouse_x_to_fraction(mouse_x);
+    fraction_to_handle_x(fraction)
+}
+
+fn seconds_to_handle_x(seconds: f64, duration: f64) -> f64 {
+    let fraction = seconds_to_fraction(seconds, duration);
+    fraction_to_handle_x(fraction)
+}
+
+fn fraction_to_seconds(fraction: f64, duration: f64) -> f64 {
+    fraction * duration
+}
+
+fn handle_x_to_fraction(handle_x: f64) -> f64 {
+    let progress_bar = web_sys::window().unwrap()
+        .document().unwrap()
+        .get_element_by_id("progress-bar")
+        .unwrap()
+        .unchecked_into::<web_sys::HtmlElement>();
+
+    let bounding_client_rect = progress_bar.get_bounding_client_rect();
+    let width = bounding_client_rect.width();
+
+    let fraction = (handle_x - HANDLE_RADIUS) / width;
+    fraction 
+}
+
+fn handle_x_to_seconds(handle_x: f64, duration: f64) -> f64 {
+    let fraction = handle_x_to_fraction(handle_x);
+    fraction_to_seconds(fraction, duration)
 }
