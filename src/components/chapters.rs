@@ -299,7 +299,11 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
     };
 
     view! { cx,
-        div(class="w-full grid grid-cols-1 justify-items-center") {
+        div(
+            class="w-full grid grid-cols-1 justify-items-center",
+            on:mousemove=handle_drag,
+            on:mouseup=handle_end_drag,
+        ) {
             div(class="grid grid-cols-1 w-full h-20") {
                 div(class="w-full relative") {
                     div(class="grid grid-cols-1 absolute text-center", style=format!("left: {}%;", percent_played)) {
@@ -311,9 +315,6 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
             // Slider
             svg(
                 class="w-full h-20",
-                on:mousemove=handle_drag,
-                on:mouseup=handle_end_drag,
-                on:mouseleave=handle_end_drag,
                 ) {
                 g {
                 g {
@@ -325,7 +326,6 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
                 class="fill-primary-500 cursor-pointer",
                 r="7", cx="7", cy="7",
                 on:mousedown=handle_start_drag,
-                on:mousemove=handle_drag,
                 ref=handle_ref,
             )   
 }
@@ -357,15 +357,17 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
 fn seconds_to_timestamp(seconds: f64, duration: f64) -> String {
     let seconds = seconds as u64;
     if duration > 3600.0 {
-        format!(
+        return format!(
             "{:02}:{:02}:{:02}",
             seconds / 3600,
             (seconds % 3600) / 60,
             seconds % 60
         )
-    } else {
-        format!("{:02}:{:02}", seconds / 60, seconds % 60)
     }
+    if duration > 60.0 {
+        return format!("{:02}:{:02}", seconds / 60, seconds % 60)
+    }
+    format!("{:02}", seconds)
 }
 
 fn tenths_of_seconds(seconds: f64) -> u8 {
