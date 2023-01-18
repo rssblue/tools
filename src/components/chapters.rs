@@ -215,6 +215,8 @@ fn ChapterHTML<G: Html>(cx: Scope, chapter: RcSignal<Chapter>) -> View<G> {
 #[component(inline_props)]
 fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
     const TIMELINE_RANGE: f64 = 1000.0;
+    const TIMELINE_HEIGHT: f64 = 5.0;
+    const HANDLE_RADIUS: f64 = 7.0;
 
     let audio = create_ref(cx, audio);
     let audio_ref = create_node_ref(cx);
@@ -224,6 +226,7 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
     let duration = || audio.get().duration.clone();
 
     let timeline_ref = create_node_ref(cx);
+    let new_timeline_ref = create_node_ref(cx);
     let handle_ref = create_node_ref(cx);
 
     let handle_toggle = move |_| {
@@ -250,27 +253,30 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
     };
 
     let handle_start_drag = move |event: Event| {
-        web_sys::console::log_1(&JsValue::from_str("Start drag"));
         let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
-        let (x, _) = get_mouse_position(event);
+        let (x, _) = get_mouse_position(event).unwrap();
         let offset = x - handle.get_attribute("cx").unwrap().parse::<f64>().unwrap();
         handle.set_attribute("data-offset", &offset.to_string()).unwrap();
     };
 
     let handle_drag = move |event: Event| {
-        web_sys::console::log_1(&JsValue::from_str("Drag"));
         let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
         if let Some(offset) = handle.get_attribute("data-offset") {
-            let (x, _) = get_mouse_position(event);
-            let offset = offset.parse::<f64>().unwrap();
-            let mut new_x = x - offset;
-            new_x = new_x.max(10.0);
-            handle.set_attribute("cx", &new_x.to_string()).unwrap();
+            if let Ok((x, _)) = get_mouse_position(event) {
+                let offset = offset.parse::<f64>().unwrap();
+                let mut new_x = x - offset;
+                new_x = new_x.max(HANDLE_RADIUS);
+                // Get actual width
+                let new_timeline = new_timeline_ref.get::<DomNode>().unchecked_into::<web_sys::Element>();
+                let bounding_client_rect = new_timeline.get_bounding_client_rect();
+                let width = bounding_client_rect.width();
+                new_x = new_x.min(width + HANDLE_RADIUS);
+                handle.set_attribute("cx", &new_x.to_string()).unwrap();
+            }
         }
     };
 
     let handle_end_drag = move |_| {
-        web_sys::console::log_1(&JsValue::from_str("End drag"));
         let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
         handle.remove_attribute("data-offset").unwrap();
     };
@@ -298,6 +304,7 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
         state().set(AudioState::Paused);
     };
 
+
     view! { cx,
         div(
             class="w-full grid grid-cols-1 justify-items-center",
@@ -315,20 +322,29 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
             // Slider
             svg(
                 class="w-full h-20",
-                ) {
+            ) {
                 g {
-                g {
-                rect(id="track-inner", class="fill-gray-300 w-full", x="0", y="6", height="2")
-        rect(id="track-fill") {}
-    }
-    g {
-        circle(
+                    g {
+                    rect(
+                        class="fill-gray-300",
+                        x=HANDLE_RADIUS,
+                        y=(HANDLE_RADIUS - TIMELINE_HEIGHT/2.0),
+                        height=TIMELINE_HEIGHT,
+                        width=format!("calc(100% - {}px)", HANDLE_RADIUS*2.0),
+                        ref=new_timeline_ref,
+                    )
+                    rect(id="track-fill") {}
+        }
+        g {
+            circle(
                 class="fill-primary-500 cursor-pointer",
-                r="7", cx="7", cy="7",
+                r=HANDLE_RADIUS,
+                cx=(2.0*HANDLE_RADIUS),
+                cy=HANDLE_RADIUS,
                 on:mousedown=handle_start_drag,
                 ref=handle_ref,
             )   
-}
+    }
 }
 }
     input(type="range", min="0", max=TIMELINE_RANGE, value="0", on:input=handle_change_seek, ref=timeline_ref,
@@ -374,10 +390,21 @@ fn tenths_of_seconds(seconds: f64) -> u8 {
     (seconds * 10.0) as u8 % 10
 }
 
-fn get_mouse_position(event: Event) -> (f64, f64) {
+fn get_mouse_position(event: Event) -> Result<(f64, f64), String> {
     let mouse_event = event.unchecked_into::<web_sys::MouseEvent>();
-    let ctm = mouse_event.target().unwrap().unchecked_into::<web_sys::SvgGraphicsElement>().get_screen_ctm().unwrap();
+    let target = match mouse_event.target() {
+        Some(target) => target,
+        None => return Err("No target".to_string()),
+    };
+
+    let el = target.unchecked_into::<web_sys::SvgGraphicsElement>();
+
+    let ctm = match el.get_screen_ctm() {
+        Some(ctm) => ctm,
+        None => return Err("No ctm".to_string()),
+    };
+
     let x = (mouse_event.client_x() as f32 - ctm.e()) / ctm.a();
     let y = (mouse_event.client_y() as f32 - ctm.f()) / ctm.d();
-    (x as f64, y as f64)
+    Ok((x as f64, y as f64))
 }
