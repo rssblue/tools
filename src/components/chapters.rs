@@ -248,23 +248,50 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
         audio_el.set_current_time(new_time);
     };
 
+    let percent_played = create_signal(cx, 0.0);
+
     let handle_timeupdate = move |_| {
         let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
         let audio_current_time = audio_el.current_time();
         let audio_duration = audio_el.duration();
         duration().set(audio_duration);
-        let percentage = (audio_current_time / audio_duration) * TIMELINE_RANGE;
+        let value = (audio_current_time / audio_duration) * TIMELINE_RANGE;
         let timeline = timeline_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlInputElement>();
-        timeline.set_value(&percentage.to_string());
+        timeline.set_value(&value.to_string());
         current_time().set(audio_current_time);
+
+        // let ratio = value / TIMELINE_RANGE;
+        // let thumb_width = 30.0;
+        // let x = thumb_width/2.0 + (canvas_el.width() as f64 - thumb_width) * ratio;
+        percent_played.set(value/TIMELINE_RANGE*100.0);
+        web_sys::console::log_1(&format!("{}%", percent_played.get()).into());
     };
+
 
     let handle_ended = move |_| {
         state().set(AudioState::Paused);
     };
 
     view! { cx,
-        div(class="flex flex-row items-center") {
+        div(class="w-full grid grid-cols-1 justify-items-center") {
+            div(class="grid grid-cols-1 w-full h-20") {
+                div(class="w-full relative") {
+                    div(class="grid grid-cols-1 absolute text-center", style=format!("left: {}%;", percent_played)) {
+                        div(class="w-6 h-6 bg-primary-500 rounded-full -ml-3")
+                div(class="border-l-2 border-primary-500 h-14")
+                    }
+            }
+        }
+        input(type="range", min="0", max=TIMELINE_RANGE, value="0", on:input=handle_change_seek, ref=timeline_ref,
+            class="w-full")
+            audio(
+                ref=audio_ref,
+                src=audio.get().url.get().as_str(),
+                on:timeupdate=handle_timeupdate,
+                on:ended=handle_ended,
+                controls=false,
+            )
+            div(class="flex flex-row items-center") {
             button(on:click=handle_toggle) { span(dangerously_set_inner_html=state().get().toggle_icon().as_str()) }
             div(class="font-mono mx-2") {
                 (seconds_to_timestamp(*current_time().get(), *duration().get()))
@@ -273,17 +300,9 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
                         (tenths_of_seconds(*current_time().get()))
                 }
             }
-            input(type="range", min="0", max=TIMELINE_RANGE, value="0", on:input=handle_change_seek, ref=timeline_ref,
-                class="flex-grow")
-                audio(
-                    ref=audio_ref,
-                    src=audio.get().url.get().as_str(),
-                    on:timeupdate=handle_timeupdate,
-                    on:ended=handle_ended,
-                    controls=false,
-                )
         }
     }
+}
 }
 
 fn seconds_to_timestamp(seconds: f64, duration: f64) -> String {
