@@ -221,34 +221,32 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
     let audio = create_ref(cx, audio);
     let audio_ref = create_node_ref(cx);
 
-    let current_time = || audio.get().current_time.clone();
-    let state = || audio.get().state.clone();
-    let duration = || audio.get().duration.clone();
+    let handle_x = create_signal(cx, HANDLE_RADIUS);
 
-    // let timeline_ref = create_node_ref(cx);
     let handle_ref = create_node_ref(cx);
+
+    create_selector(cx, || {
+        let new_handle_x = seconds_to_handle_x(*audio.get().current_time.get(), *audio.get().duration.get());
+        handle_x.set(new_handle_x);
+    });
+
+    create_selector(cx, || {
+        let new_seconds = handle_x_to_seconds(*handle_x.get(), *audio.get().duration.get());
+        audio.get().current_time.set(new_seconds);
+    });
 
     let handle_toggle = move |_| {
         let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
-        match *state().get() {
+        match *audio.get().state.get() {
             AudioState::Paused => {
                 audio_el.play().unwrap();
-                state().set(AudioState::Playing);
+                audio.get().state.set(AudioState::Playing);
             }
             AudioState::Playing => {
                 audio_el.pause();
-                state().set(AudioState::Paused);
+                audio.get().state.set(AudioState::Paused);
             }
         }
-    };
-
-    let handle_change_seek = move |event: Event| {
-        let input = event.target().unwrap().unchecked_into::<web_sys::HtmlInputElement>();
-        let value = input.value_as_number();
-        let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
-        let duration = audio_el.duration();
-        let new_time = (value / TIMELINE_RANGE) * duration;
-        audio_el.set_current_time(new_time);
     };
 
     let handle_start_drag = move |event: Event| {
@@ -263,7 +261,6 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
             let (mouse_x, _) = mouse_position(event);
 
             let handle_x = mouse_x_to_handle_x(mouse_x);
-            handle.set_attribute("cx", &handle_x.to_string()).unwrap();
 
             let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
             let duration = audio_el.duration();
@@ -278,24 +275,28 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
         handle.set_attribute("class", "fill-primary-500 cursor-pointer").unwrap();
     };
 
-    let fraction_played = create_signal(cx, 0.0);
-
     let handle_timeupdate = move |_| {
         let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
-        let audio_current_time = audio_el.current_time();
+        let current_time = audio_el.current_time();
+        audio.get().current_time.set(current_time);
+    };
+
+    let handle_duration_set = move |_| {
+        let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
         let audio_duration = audio_el.duration();
-        duration().set(audio_duration);
-        fraction_played.set(audio_current_time / audio_duration);
-
-        current_time().set(audio_current_time);
-
-        let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
-        let handle_x = seconds_to_handle_x(audio_current_time, audio_duration);
-        handle.set_attribute("cx", &handle_x.to_string()).unwrap();
+        audio.get().duration.set(audio_duration);
     };
 
     let handle_ended = move |_| {
-        state().set(AudioState::Paused);
+        audio.get().state.set(AudioState::Paused);
+    };
+
+    let handle_new_chapter = move |_| {
+        let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
+        audio_el.pause();
+        audio.get().state.set(AudioState::Paused);
+
+        web_sys::console::log_1(&"new chapter".into());
     };
 
     view! { cx,
@@ -306,7 +307,8 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
             on:mouseleave=handle_end_drag,
         ) {
             svg(
-                class="w-full h-7",
+                class="w-full",
+                style="height: 120px",
             ) {
                 g {
                     g {
@@ -314,18 +316,29 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
                         id="progress-bar",
                         class="fill-gray-300",
                         x=HANDLE_RADIUS,
-                        y=(HANDLE_RADIUS - TIMELINE_HEIGHT/2.0),
+                        y=(100.0 + HANDLE_RADIUS - TIMELINE_HEIGHT/2.0),
                         height=TIMELINE_HEIGHT,
                         width=format!("calc(100% - {}px)", HANDLE_RADIUS*2.0),
                     )
                     rect(id="track-fill") {}
         }
+
+
         g {
+            circle(
+                id="handle-new-chapter",
+                class="fill-primary-500 cursor-pointer",
+                r=HANDLE_RADIUS,
+                cx=handle_x,
+                cy=HANDLE_RADIUS,
+                on:click=handle_new_chapter,
+            )
+
             circle(
                 class="fill-primary-500 cursor-pointer",
                 r=HANDLE_RADIUS,
-                cx=HANDLE_RADIUS,
-                cy=HANDLE_RADIUS,
+                cx=handle_x,
+                cy=(100.0 + HANDLE_RADIUS),
                 on:mousedown=handle_start_drag,
                 ref=handle_ref,
             )   
@@ -337,15 +350,16 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
         src=audio.get().url.get().as_str(),
         on:timeupdate=handle_timeupdate,
         on:ended=handle_ended,
+        on:canplay=handle_duration_set,
         controls=false,
     )
         div(class="flex flex-row items-center") {
-        button(on:click=handle_toggle) { span(dangerously_set_inner_html=state().get().toggle_icon().as_str()) }
+        button(on:click=handle_toggle) { span(dangerously_set_inner_html=audio.get().state.get().toggle_icon().as_str()) }
         div(class="font-mono mx-2 select-none") {
-            (seconds_to_timestamp(*current_time().get(), *duration().get()))
+            (seconds_to_timestamp(*audio.get().current_time.get(), *audio.get().duration.get()))
                 span(class="text-gray-400") {
                 "."
-                    (tenths_of_seconds(*current_time().get()))
+                    (tenths_of_seconds(*audio.get().current_time.get()))
             }
         }
     }
@@ -384,11 +398,13 @@ fn seconds_to_fraction(seconds: f64, duration: f64) -> f64 {
 
 fn fraction_to_handle_x(fraction: f64) -> f64 {
     // The progress bar starts at HANDLE_RADIUS and ends at 100% - HANDLE_RADIUS
-    let progress_bar = web_sys::window().unwrap()
+    let progress_bar = match web_sys::window().unwrap()
         .document().unwrap()
-        .get_element_by_id("progress-bar")
-        .unwrap()
-        .unchecked_into::<web_sys::HtmlElement>();
+        .get_element_by_id("progress-bar") {
+        Some(el) => el,
+        None => return HANDLE_RADIUS,
+    };
+    let progress_bar = progress_bar.unchecked_into::<web_sys::HtmlElement>();
 
     let bounding_client_rect = progress_bar.get_bounding_client_rect();
     let width = bounding_client_rect.width();
@@ -434,11 +450,13 @@ fn fraction_to_seconds(fraction: f64, duration: f64) -> f64 {
 }
 
 fn handle_x_to_fraction(handle_x: f64) -> f64 {
-    let progress_bar = web_sys::window().unwrap()
+    let progress_bar = match web_sys::window().unwrap()
         .document().unwrap()
-        .get_element_by_id("progress-bar")
-        .unwrap()
-        .unchecked_into::<web_sys::HtmlElement>();
+        .get_element_by_id("progress-bar") {
+            Some(el) => el,
+            None => return 0.0,
+        };
+    let progress_bar = progress_bar.unchecked_into::<web_sys::HtmlElement>();
 
     let bounding_client_rect = progress_bar.get_bounding_client_rect();
     let width = bounding_client_rect.width();
