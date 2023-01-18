@@ -224,6 +224,7 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
     let duration = || audio.get().duration.clone();
 
     let timeline_ref = create_node_ref(cx);
+    let handle_ref = create_node_ref(cx);
 
     let handle_toggle = move |_| {
         let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
@@ -248,6 +249,32 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
         audio_el.set_current_time(new_time);
     };
 
+    let handle_start_drag = move |event: Event| {
+        web_sys::console::log_1(&JsValue::from_str("Start drag"));
+        let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
+        let (x, _) = get_mouse_position(event);
+        let offset = x - handle.get_attribute("cx").unwrap().parse::<f64>().unwrap();
+        handle.set_attribute("data-offset", &offset.to_string()).unwrap();
+    };
+
+    let handle_drag = move |event: Event| {
+        web_sys::console::log_1(&JsValue::from_str("Drag"));
+        let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
+        if let Some(offset) = handle.get_attribute("data-offset") {
+            let (x, _) = get_mouse_position(event);
+            let offset = offset.parse::<f64>().unwrap();
+            let mut new_x = x - offset;
+            new_x = new_x.max(10.0);
+            handle.set_attribute("cx", &new_x.to_string()).unwrap();
+        }
+    };
+
+    let handle_end_drag = move |_| {
+        web_sys::console::log_1(&JsValue::from_str("End drag"));
+        let handle = handle_ref.get::<DomNode>().unchecked_into::<web_sys::SvgElement>();
+        handle.remove_attribute("data-offset").unwrap();
+    };
+
     let percent_played = create_signal(cx, 0.0);
 
     let handle_timeupdate = move |_| {
@@ -267,7 +294,6 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
         web_sys::console::log_1(&format!("{}%", percent_played.get()).into());
     };
 
-
     let handle_ended = move |_| {
         state().set(AudioState::Paused);
     };
@@ -278,30 +304,53 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
                 div(class="w-full relative") {
                     div(class="grid grid-cols-1 absolute text-center", style=format!("left: {}%;", percent_played)) {
                         div(class="w-6 h-6 bg-primary-500 rounded-full -ml-3")
-                div(class="border-l-2 border-primary-500 h-14")
+                            div(class="border-l-2 border-primary-500 h-14")
                     }
-            }
-        }
-        input(type="range", min="0", max=TIMELINE_RANGE, value="0", on:input=handle_change_seek, ref=timeline_ref,
-            class="w-full")
-            audio(
-                ref=audio_ref,
-                src=audio.get().url.get().as_str(),
-                on:timeupdate=handle_timeupdate,
-                on:ended=handle_ended,
-                controls=false,
-            )
-            div(class="flex flex-row items-center") {
-            button(on:click=handle_toggle) { span(dangerously_set_inner_html=state().get().toggle_icon().as_str()) }
-            div(class="font-mono mx-2") {
-                (seconds_to_timestamp(*current_time().get(), *duration().get()))
-                    span(class="text-gray-400") {
-                    "."
-                        (tenths_of_seconds(*current_time().get()))
                 }
+            }
+            // Slider
+            svg(
+                class="w-full h-20",
+                on:mousemove=handle_drag,
+                on:mouseup=handle_end_drag,
+                on:mouseleave=handle_end_drag,
+                ) {
+                g {
+                g {
+                rect(id="track-inner", class="fill-gray-300 w-full", x="0", y="6", height="2")
+        rect(id="track-fill") {}
+    }
+    g {
+        circle(
+                class="fill-primary-500 cursor-pointer",
+                r="7", cx="7", cy="7",
+                on:mousedown=handle_start_drag,
+                on:mousemove=handle_drag,
+                ref=handle_ref,
+            )   
+}
+}
+}
+    input(type="range", min="0", max=TIMELINE_RANGE, value="0", on:input=handle_change_seek, ref=timeline_ref,
+        class="w-full")
+        audio(
+            ref=audio_ref,
+            src=audio.get().url.get().as_str(),
+            on:timeupdate=handle_timeupdate,
+            on:ended=handle_ended,
+            controls=false,
+        )
+        div(class="flex flex-row items-center") {
+        button(on:click=handle_toggle) { span(dangerously_set_inner_html=state().get().toggle_icon().as_str()) }
+        div(class="font-mono mx-2") {
+            (seconds_to_timestamp(*current_time().get(), *duration().get()))
+                span(class="text-gray-400") {
+                "."
+                    (tenths_of_seconds(*current_time().get()))
             }
         }
     }
+}
 }
 }
 
@@ -321,4 +370,12 @@ fn seconds_to_timestamp(seconds: f64, duration: f64) -> String {
 
 fn tenths_of_seconds(seconds: f64) -> u8 {
     (seconds * 10.0) as u8 % 10
+}
+
+fn get_mouse_position(event: Event) -> (f64, f64) {
+    let mouse_event = event.unchecked_into::<web_sys::MouseEvent>();
+    let ctm = mouse_event.target().unwrap().unchecked_into::<web_sys::SvgGraphicsElement>().get_screen_ctm().unwrap();
+    let x = (mouse_event.client_x() as f32 - ctm.e()) / ctm.a();
+    let y = (mouse_event.client_y() as f32 - ctm.f()) / ctm.d();
+    (x as f64, y as f64)
 }
