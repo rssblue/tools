@@ -3,9 +3,7 @@ use wasm_bindgen::JsCast;
 use web_sys::{KeyboardEvent, Event};
 use uuid::Uuid;
 use crate::components::utils;
-use wasm_bindgen::JsValue;
 
-const TIMELINE_RANGE: f64 = 1000.0;
 const TIMELINE_HEIGHT: f64 = 5.0;
 const HANDLE_RADIUS: f64 = 8.0;
 
@@ -47,16 +45,29 @@ pub struct AppState {
 }
 
 impl AppState {
-    fn add_chapter(&self, title: String, start_time: f64) {
+    fn add_chapter(&self, title: String, start_time: f64) -> Uuid {
+        let id = Uuid::new_v4();
         self.chapters.modify().push(create_rc_signal(Chapter {
             title,
             start_time,
-            id: Uuid::new_v4(),
-        }))
+            id: id.clone(),
+        }));
+        self.sort_chapters();
+        id
     }
 
     fn remove_chapter(&self, id: Uuid) {
         self.chapters.modify().retain(|chapter| chapter.get().id != id);
+    }
+
+    fn sort_chapters(&self) {
+        self.chapters.modify().sort_by(|a, b| a.get().start_time.partial_cmp(&b.get().start_time).unwrap());
+    }
+
+    fn current_chapter(&self) -> Option<RcSignal<Chapter>> {
+        let current_time = self.audio.get().current_time.get();
+        // Find the chapter that is right before the current time
+        self.chapters.get().iter().rev().find(|chapter| chapter.get().start_time <= *current_time).cloned()
     }
 }
 
@@ -85,47 +96,18 @@ pub fn Chapters<G: Html>(cx: Scope) -> View<G> {
 
         div(class="grid grid-cols-1 space-y-5") {
 
-        (view! { cx, AudioHTML(audio=app_state.audio.clone()) })
+            (view! { cx, AudioHTML })
 
-        HeaderHTML {}
-            (if *chapters_empty.get() {
-                view! { cx,
-                    "Empty"
-                }
-            } else {
+                (if *chapters_empty.get() {
                     view! { cx,
-                        ChaptersListHTML {}
+                        ""
                     }
-                })
+                } else {
+                        view! { cx,
+                            ChaptersListHTML {}
+                        }
+                    })
         }
-    }
-}
-
-#[component]
-fn HeaderHTML<G: Html>(cx: Scope) -> View<G> {
-    let app_state = use_context::<AppState>(cx);
-    let input_value = create_signal(cx, String::new());
-
-    let handle_keyup = |event: Event| {
-        let keyup_event: KeyboardEvent = event.unchecked_into();
-        let key = keyup_event.key();
-        if key == "Enter" {
-            let mut title = input_value.get().as_ref().clone();
-            title = title.trim().to_string();
-
-            if !title.is_empty() {
-                app_state.add_chapter(title, 0.0);
-                input_value.set("".to_string());
-            }
-        }
-    };
-
-    view! { cx,
-        input(
-            placeholder="Chapter title",
-            bind:value=input_value,
-            on:keyup=handle_keyup,
-        )
     }
 }
 
@@ -198,53 +180,71 @@ fn ChapterHTML<G: Html>(cx: Scope, chapter: RcSignal<Chapter>) -> View<G> {
     };
 
     view! { cx,
-        li {
+        li(id=format!("chapter-{}", id), class="flex items-center space-x-2") {
 
             input(
+                type="text",
                 ref=input_ref,
                 bind:value=input_value,
                 on:blur=move |_| handle_blur(),
                 on:keyup=handle_keyup,
             )
 
+                div(class="font-mono mx-2 select-none") {
+                (seconds_to_timestamp(start_time(), *app_state.audio.get().duration.get()))
+                    span(class="text-gray-400") {
+                    "."
+                        (tenths_of_seconds(start_time()))
+                }
+            }
+
+
             button(
                 class="ml-2 px-2 px-2 bg-danger-500 hover:bg-danger-600 text-white rounded",
                 on:click=handle_destroy
             ) { "x" }
+        }
     }
 }
-}
 
 
-#[component(inline_props)]
-fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
-    let audio = create_ref(cx, audio);
+#[component]
+fn AudioHTML<G: Html>(cx: Scope) -> View<G> {
+    let app_state = use_context::<AppState>(cx);
+
     let audio_ref = create_node_ref(cx);
-
     let handle_x = create_signal(cx, HANDLE_RADIUS);
-
     let handle_ref = create_node_ref(cx);
 
+    let chapters = create_memo(cx, || {
+        app_state
+            .chapters
+            .get()
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>()
+    });
+
     create_selector(cx, || {
-        let new_handle_x = seconds_to_handle_x(*audio.get().current_time.get(), *audio.get().duration.get());
+        let new_handle_x = seconds_to_handle_x(*app_state.audio.get().current_time.get(), *app_state.audio.get().duration.get());
         handle_x.set(new_handle_x);
     });
 
     create_selector(cx, || {
-        let new_seconds = handle_x_to_seconds(*handle_x.get(), *audio.get().duration.get());
-        audio.get().current_time.set(new_seconds);
+        let new_seconds = handle_x_to_seconds(*handle_x.get(), *app_state.audio.get().duration.get());
+        app_state.audio.get().current_time.set(new_seconds);
     });
 
     let handle_toggle = move |_| {
         let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
-        match *audio.get().state.get() {
+        match *app_state.audio.get().state.get() {
             AudioState::Paused => {
                 audio_el.play().unwrap();
-                audio.get().state.set(AudioState::Playing);
+                app_state.audio.get().state.set(AudioState::Playing);
             }
             AudioState::Playing => {
                 audio_el.pause();
-                audio.get().state.set(AudioState::Paused);
+                app_state.audio.get().state.set(AudioState::Paused);
             }
         }
     };
@@ -278,25 +278,29 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
     let handle_timeupdate = move |_| {
         let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
         let current_time = audio_el.current_time();
-        audio.get().current_time.set(current_time);
+        app_state.audio.get().current_time.set(current_time);
     };
 
     let handle_duration_set = move |_| {
         let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
         let audio_duration = audio_el.duration();
-        audio.get().duration.set(audio_duration);
+        app_state.audio.get().duration.set(audio_duration);
     };
 
     let handle_ended = move |_| {
-        audio.get().state.set(AudioState::Paused);
+        app_state.audio.get().state.set(AudioState::Paused);
     };
 
     let handle_new_chapter = move |_| {
         let audio_el = audio_ref.get::<DomNode>().unchecked_into::<web_sys::HtmlAudioElement>();
         audio_el.pause();
-        audio.get().state.set(AudioState::Paused);
+        app_state.audio.get().state.set(AudioState::Paused);
 
-        web_sys::console::log_1(&"new chapter".into());
+        let current_time = audio_el.current_time();
+        let chapter_id = app_state.add_chapter("".to_string(), current_time);
+        let chapter_el = web_sys::window().unwrap().document().unwrap().get_element_by_id(&format!("chapter-{}", chapter_id)).unwrap();
+        let input = chapter_el.first_child().unwrap();
+        input.unchecked_into::<web_sys::HtmlInputElement>().focus().unwrap();
     };
 
     view! { cx,
@@ -343,29 +347,74 @@ fn AudioHTML<G: Html>(cx: Scope, audio: RcSignal<Audio>) -> View<G> {
                 ref=handle_ref,
             )   
     }
+
+    Keyed(
+        iterable=chapters,
+        view=|cx, chapter| view! { cx,
+            ChapterLineHTML(chapter=chapter)
+        },
+        key=|chapter| chapter.get().id,
+    )
 }
 }
     audio(
         ref=audio_ref,
-        src=audio.get().url.get().as_str(),
+        src=app_state.audio.get().url.get().as_str(),
         on:timeupdate=handle_timeupdate,
         on:ended=handle_ended,
         on:canplay=handle_duration_set,
         controls=false,
     )
         div(class="flex flex-row items-center") {
-        button(on:click=handle_toggle) { span(dangerously_set_inner_html=audio.get().state.get().toggle_icon().as_str()) }
+        button(on:click=handle_toggle) { span(dangerously_set_inner_html=app_state.audio.get().state.get().toggle_icon().as_str()) }
         div(class="font-mono mx-2 select-none") {
-            (seconds_to_timestamp(*audio.get().current_time.get(), *audio.get().duration.get()))
+            (seconds_to_timestamp(*app_state.audio.get().current_time.get(), *app_state.audio.get().duration.get()))
                 span(class="text-gray-400") {
                 "."
-                    (tenths_of_seconds(*audio.get().current_time.get()))
+                    (tenths_of_seconds(*app_state.audio.get().current_time.get()))
             }
         }
     }
 }
 }
 }
+
+#[component(inline_props)]
+fn ChapterLineHTML<G: Html>(cx: Scope, chapter: RcSignal<Chapter>) -> View<G> {
+    let app_state = use_context::<AppState>(cx);
+    // Make `chapter` live as long as the scope.
+    let chapter = create_ref(cx, chapter);
+
+    let start_time = || chapter.get().start_time.clone();
+    let id = chapter.get().id;
+
+    let class = create_signal(cx, "".to_string());
+
+    create_effect(cx, move || {
+        let current_chapter = app_state.current_chapter();
+        if let Some(current_chapter) = current_chapter {
+            if current_chapter.get().id == id {
+                class.set("stroke-primary-500 stroke-2".to_string());
+            } else {
+                class.set("stroke-primary-500 stroke-1".to_string());
+            }
+        } else {
+            class.set("stroke-primary-500 stroke-1".to_string());
+        }
+    });
+
+    view! { cx,
+        // Vertical line at chapter start
+        line(
+            class=class,
+            x1=seconds_to_handle_x(start_time(), *app_state.audio.get().duration.get()),
+            y1=50.0,
+            x2=seconds_to_handle_x(start_time(), *app_state.audio.get().duration.get()),
+            y2=(100.0 + HANDLE_RADIUS - TIMELINE_HEIGHT/2.0),
+        )
+    }
+}
+
 
 fn seconds_to_timestamp(seconds: f64, duration: f64) -> String {
     let seconds = seconds as u64;
@@ -401,9 +450,9 @@ fn fraction_to_handle_x(fraction: f64) -> f64 {
     let progress_bar = match web_sys::window().unwrap()
         .document().unwrap()
         .get_element_by_id("progress-bar") {
-        Some(el) => el,
-        None => return HANDLE_RADIUS,
-    };
+            Some(el) => el,
+            None => return HANDLE_RADIUS,
+        };
     let progress_bar = progress_bar.unchecked_into::<web_sys::HtmlElement>();
 
     let bounding_client_rect = progress_bar.get_bounding_client_rect();
