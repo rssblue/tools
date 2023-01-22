@@ -64,6 +64,7 @@ pub enum Icon {
     XCircle,
     Play,
     Pause,
+    PlusCircle,
 }
 
 impl std::fmt::Display for Icon {
@@ -83,6 +84,7 @@ impl std::fmt::Display for Icon {
             Self::XCircle => include_str!("../../assets/svg/feather-icons/x-circle.svg"),
             Self::Play => include_str!("../../assets/svg/feather-icons/play.svg"),
             Self::Pause => include_str!("../../assets/svg/feather-icons/pause.svg"),
+            Self::PlusCircle => include_str!("../../assets/svg/feather-icons/plus-circle.svg"),
         };
         write!(f, "{svg}")
     }

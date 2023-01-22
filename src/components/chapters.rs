@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::components::utils;
 
 const TIMELINE_HEIGHT: f64 = 5.0;
-const HANDLE_RADIUS: f64 = 8.0;
+const HANDLE_RADIUS: f64 = 10.0;
 
 #[derive(Debug, Clone, PartialEq)]
 struct Chapter {
@@ -200,7 +200,7 @@ fn ChapterHTML<G: Html>(cx: Scope, chapter: RcSignal<Chapter>) -> View<G> {
 
 
             button(
-                class="ml-2 px-2 px-2 bg-danger-500 hover:bg-danger-600 text-white rounded",
+                class="ml-2 px-2 bg-danger-500 hover:bg-danger-600 text-white rounded",
                 on:click=handle_destroy
             ) { "x" }
         }
@@ -330,54 +330,26 @@ fn AudioHTML<G: Html>(cx: Scope) -> View<G> {
 
         g {
 
-            g(
-            on:click=handle_new_chapter,
-            class="cursor-pointer",
-        ) {
             circle(
-                class="fill-primary-500",
+                class="fill-primary-500 cursor-pointer",
                 r=HANDLE_RADIUS,
                 cx=handle_x,
-                cy=HANDLE_RADIUS,
-            )
-            line(
-                class="stroke-white stroke-1",
-                x1=(*handle_x.get() - 0.9*HANDLE_RADIUS),
-                y1=HANDLE_RADIUS,
-                x2=(*handle_x.get() + 0.9*HANDLE_RADIUS),
-                y2=HANDLE_RADIUS,
-            )
-
-            line(
-                class="stroke-white stroke-1",
-                x1=handle_x,
-                y1=(0.1*HANDLE_RADIUS),
-                x2=handle_x,
-                y2=(1.9*HANDLE_RADIUS),
-            )
+                cy=(100.0 + HANDLE_RADIUS),
+                on:mousedown=handle_start_drag,
+                ref=handle_ref,
+            )   
     }
 
-
-    circle(
-        class="fill-primary-500 cursor-pointer",
-        r=HANDLE_RADIUS,
-        cx=handle_x,
-        cy=(100.0 + HANDLE_RADIUS),
-        on:mousedown=handle_start_drag,
-        ref=handle_ref,
-    )   
-    }
-
-        Keyed(
+    Keyed(
         iterable=chapters,
         view=|cx, chapter| view! { cx,
             ChapterLineHTML(chapter=chapter)
         },
         key=|chapter| chapter.get().id,
     )
-    }
-    }
-        audio(
+}
+}
+    audio(
         ref=audio_ref,
         src=app_state.audio.get().url.get().as_str(),
         on:timeupdate=handle_timeupdate,
@@ -385,16 +357,28 @@ fn AudioHTML<G: Html>(cx: Scope) -> View<G> {
         on:canplay=handle_duration_set,
         controls=false,
     )
-        div(class="flex flex-row items-center") {
-        button(on:click=handle_toggle) { span(dangerously_set_inner_html=app_state.audio.get().state.get().toggle_icon().as_str()) }
-        div(class="font-mono mx-2 select-none") {
-        (seconds_to_timestamp(*app_state.audio.get().current_time.get(), *app_state.audio.get().duration.get()))
-        span(class="text-gray-400") {
-        "."
-        (tenths_of_seconds(*app_state.audio.get().current_time.get()))
-}
-}
-}
+        div(class=format!("flex items-center justify-between w-full mt-2 px-[{}px]", HANDLE_RADIUS)) {
+        button(
+            class="flex items-center",
+            on:click=handle_toggle,
+        ) {
+            span(dangerously_set_inner_html=app_state.audio.get().state.get().toggle_icon().as_str())
+            div(class="font-mono mx-2 select-none") {
+                (seconds_to_timestamp(*app_state.audio.get().current_time.get(), *app_state.audio.get().duration.get()))
+                    span(class="text-gray-400") {
+                    "."
+                        (tenths_of_seconds(*app_state.audio.get().current_time.get()))
+                }
+            }
+        }
+        button(
+            class="flex items-center ml-5",
+            on:click=handle_new_chapter,
+        ) {
+            span(dangerously_set_inner_html=utils::Icon::PlusCircle.to_string().replace("{{ class }}", "h-5 stroke-2").as_str())
+            span(class="ml-1.5") { "New chapter" }
+        }
+    }
 }
 }
 }
