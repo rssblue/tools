@@ -41,19 +41,19 @@ struct Audio {
 #[derive(Debug, Default, Clone)]
 pub struct AppState {
     chapters: RcSignal<Vec<RcSignal<Chapter>>>,
+    selected_chapter: RcSignal<Option<RcSignal<Chapter>>>,
     audio: RcSignal<Audio>,
 }
 
 impl AppState {
-    fn add_chapter(&self, title: String, start_time: f64) -> Uuid {
+    fn add_chapter(&self, title: String, start_time: f64) -> RcSignal<Chapter> {
         let id = Uuid::new_v4();
-        self.chapters.modify().push(create_rc_signal(Chapter {
-            title,
-            start_time,
-            id: id.clone(),
-        }));
+        let chapter = create_rc_signal(Chapter { id, title, start_time });
+        self.chapters.modify().push(chapter.clone());
         self.sort_chapters();
-        id
+        self.select_chapter(id);
+
+        chapter
     }
 
     fn remove_chapter(&self, id: Uuid) {
@@ -69,6 +69,10 @@ impl AppState {
         // Find the chapter that is right before the current time
         self.chapters.get().iter().rev().find(|chapter| chapter.get().start_time <= *current_time).cloned()
     }
+
+    fn select_chapter(&self, id: Uuid) {
+        self.selected_chapter.set(self.chapters.get().iter().find(|chapter| chapter.get().id == id).cloned());
+    }
 }
 
 #[component]
@@ -81,6 +85,7 @@ pub fn Chapters<G: Html>(cx: Scope) -> View<G> {
             current_time: create_rc_signal(0.0),
             duration: create_rc_signal(0.0),
         }),
+        selected_chapter: Default::default(),
     };
     let app_state = provide_context(cx, app_state);
 
@@ -297,8 +302,8 @@ fn AudioHTML<G: Html>(cx: Scope) -> View<G> {
         app_state.audio.get().state.set(AudioState::Paused);
 
         let current_time = audio_el.current_time();
-        let chapter_id = app_state.add_chapter("".to_string(), current_time);
-        let chapter_el = web_sys::window().unwrap().document().unwrap().get_element_by_id(&format!("chapter-{}", chapter_id)).unwrap();
+        let chapter = app_state.add_chapter("".to_string(), current_time);
+        let chapter_el = web_sys::window().unwrap().document().unwrap().get_element_by_id(&format!("chapter-{}", chapter.get().id)).unwrap();
         let input = chapter_el.first_child().unwrap();
         input.unchecked_into::<web_sys::HtmlInputElement>().focus().unwrap();
     };
@@ -327,6 +332,13 @@ fn AudioHTML<G: Html>(cx: Scope) -> View<G> {
                     rect(id="track-fill") {}
         }
 
+        Keyed(
+            iterable=chapters,
+            view=|cx, chapter| view! { cx,
+                ChapterLineHTML(chapter=chapter)
+            },
+            key=|chapter| chapter.get().id,
+        )
 
         g {
 
@@ -339,14 +351,6 @@ fn AudioHTML<G: Html>(cx: Scope) -> View<G> {
                 ref=handle_ref,
             )   
     }
-
-    Keyed(
-        iterable=chapters,
-        view=|cx, chapter| view! { cx,
-            ChapterLineHTML(chapter=chapter)
-        },
-        key=|chapter| chapter.get().id,
-    )
 }
 }
     audio(
@@ -396,25 +400,46 @@ fn ChapterLineHTML<G: Html>(cx: Scope, chapter: RcSignal<Chapter>) -> View<G> {
 
     create_effect(cx, move || {
         let current_chapter = app_state.current_chapter();
+        let mut is_current_chapter = false;
         if let Some(current_chapter) = current_chapter {
             if current_chapter.get().id == id {
-                class.set("stroke-primary-500 stroke-2".to_string());
-            } else {
-                class.set("stroke-primary-500 stroke-1".to_string());
+                is_current_chapter = true;
             }
+        } 
+        let mut class_str = String::new();
+        if is_current_chapter {
+            class_str = format!("{} stroke-2", class_str);
         } else {
-            class.set("stroke-primary-500 stroke-1".to_string());
+            class_str = format!("{} stroke-1", class_str);
         }
+
+        let mut is_selected = false;
+        if let Some(selected_chapter) = &*app_state.selected_chapter.get() {
+            if selected_chapter.get().id == id {
+                is_selected = true;
+            }
+        }
+        if is_selected {
+            class_str = format!("{} stroke-primary-500", class_str);
+        } else {
+            class_str = format!("{} stroke-gray-500", class_str);
+        }
+
+        class.set(class_str);
     });
 
     view! { cx,
         // Vertical line at chapter start
+        // TODO: use rect to specify width.
         line(
             class=class,
             x1=seconds_to_handle_x(start_time(), *app_state.audio.get().duration.get()),
             y1=50.0,
             x2=seconds_to_handle_x(start_time(), *app_state.audio.get().duration.get()),
             y2=(100.0 + HANDLE_RADIUS - TIMELINE_HEIGHT/2.0),
+            on:click=move |_| {
+                app_state.select_chapter(chapter.get().id);
+            },
         )
     }
 }
