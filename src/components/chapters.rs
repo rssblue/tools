@@ -76,7 +76,7 @@ pub fn Chapters<G: Html>(cx: Scope) -> View<G> {
     let app_state = AppState {
         chapters: Default::default(),
         audio: create_rc_signal(Audio {
-            url: create_rc_signal("https://file-examples.com/storage/fe2879c03363c669a9ef954/2017/11/file_example_MP3_700KB.mp3".to_string()),
+            url: create_rc_signal("https://rssblue.com/podcasts/m4a/yaaay/audio-example-ok.m4a".to_string()),
             state: create_rc_signal(AudioState::Paused),
             current_time: create_rc_signal(0.0),
             duration: create_rc_signal(0.0),
@@ -329,35 +329,55 @@ fn AudioHTML<G: Html>(cx: Scope) -> View<G> {
 
 
         g {
+
+            g(
+            on:click=handle_new_chapter,
+            class="cursor-pointer",
+        ) {
             circle(
-                id="handle-new-chapter",
-                class="fill-primary-500 cursor-pointer",
+                class="fill-primary-500",
                 r=HANDLE_RADIUS,
                 cx=handle_x,
                 cy=HANDLE_RADIUS,
-                on:click=handle_new_chapter,
+            )
+            line(
+                class="stroke-white stroke-1",
+                x1=(*handle_x.get() - 0.9*HANDLE_RADIUS),
+                y1=HANDLE_RADIUS,
+                x2=(*handle_x.get() + 0.9*HANDLE_RADIUS),
+                y2=HANDLE_RADIUS,
             )
 
-            circle(
-                class="fill-primary-500 cursor-pointer",
-                r=HANDLE_RADIUS,
-                cx=handle_x,
-                cy=(100.0 + HANDLE_RADIUS),
-                on:mousedown=handle_start_drag,
-                ref=handle_ref,
-            )   
+            line(
+                class="stroke-white stroke-1",
+                x1=handle_x,
+                y1=(0.1*HANDLE_RADIUS),
+                x2=handle_x,
+                y2=(1.9*HANDLE_RADIUS),
+            )
     }
 
-    Keyed(
+
+    circle(
+        class="fill-primary-500 cursor-pointer",
+        r=HANDLE_RADIUS,
+        cx=handle_x,
+        cy=(100.0 + HANDLE_RADIUS),
+        on:mousedown=handle_start_drag,
+        ref=handle_ref,
+    )   
+    }
+
+        Keyed(
         iterable=chapters,
         view=|cx, chapter| view! { cx,
             ChapterLineHTML(chapter=chapter)
         },
         key=|chapter| chapter.get().id,
     )
-}
-}
-    audio(
+    }
+    }
+        audio(
         ref=audio_ref,
         src=app_state.audio.get().url.get().as_str(),
         on:timeupdate=handle_timeupdate,
@@ -368,13 +388,13 @@ fn AudioHTML<G: Html>(cx: Scope) -> View<G> {
         div(class="flex flex-row items-center") {
         button(on:click=handle_toggle) { span(dangerously_set_inner_html=app_state.audio.get().state.get().toggle_icon().as_str()) }
         div(class="font-mono mx-2 select-none") {
-            (seconds_to_timestamp(*app_state.audio.get().current_time.get(), *app_state.audio.get().duration.get()))
-                span(class="text-gray-400") {
-                "."
-                    (tenths_of_seconds(*app_state.audio.get().current_time.get()))
-            }
-        }
-    }
+        (seconds_to_timestamp(*app_state.audio.get().current_time.get(), *app_state.audio.get().duration.get()))
+        span(class="text-gray-400") {
+        "."
+        (tenths_of_seconds(*app_state.audio.get().current_time.get()))
+}
+}
+}
 }
 }
 }
