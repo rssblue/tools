@@ -346,6 +346,7 @@ enum Error {
     MultipleChildren(TagName),
     AttributeExceedsMaxLength(String, String, usize),
     Custom(String),
+    CustomWithExtraInfo(String, String),
 }
 
 const NODE_VALUE: &str = "node value";
@@ -465,6 +466,39 @@ fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
         Error::Custom(msg) => {
             view! { cx,
                 div(class="text-danger-500", dangerously_set_inner_html=msg.as_str()) {}
+            }
+        }
+        Error::CustomWithExtraInfo(msg, extra_info) => {
+            let show_extra_info = create_signal(cx, false);
+
+            let extra_info = move || {
+                if *show_extra_info.get() {
+                    extra_info.clone()
+                } else {
+                    "Learn more".to_string()
+                }
+            };
+
+            let extra_info_cls = move || {
+                if *show_extra_info.get() {
+                    ""
+                } else {
+                    "link cursor-pointer"
+                }
+            };
+
+            view! { cx,
+                div {
+                div(class="text-danger-500", dangerously_set_inner_html=msg.as_str()) {}
+                }
+                div {
+                    span(
+                        class=extra_info_cls(),
+                        on:click=move |_| show_extra_info.set(true),
+                    ) {
+                        span(dangerously_set_inner_html=extra_info().as_str())
+                    }
+                }
             }
         }
     }
@@ -1725,8 +1759,9 @@ fn analyze_podcast_transcript(transcript: &badpod::podcast::Transcript) -> Node 
     if let Some(type_) = &transcript.type_ {
         match type_ {
             badpod::MimeTranscript::ApplicationSrt => {
-                errors.push(Error::Custom(
-                    "\"<code>application/srt</code>\" in attribute <code class=\"font-bold\">type</code> is not a valid mime type. <a class=\"link\" href=\"https://github.com/Podcastindex-org/podcast-namespace/pull/331\" target=\"_blank\" rel=\"noopener noreferrer\">On February 3, 2022</a>, the recognized alternative for SubRip files in the podcast namespace specification became \"<code>application/x-subrip</code>\". However, keep in mind that although podcast players like Podverse and Podcast Addict have updated their codebases, some other apps may still only recognize \"<code>application/srt</code>\" at this time."
+                errors.push(Error::CustomWithExtraInfo(
+                    "\"<code>application/srt</code>\" in attribute <code class=\"font-bold\">type</code> is not a valid mime type.".to_string(),
+                    "<a class=\"link\" href=\"https://github.com/Podcastindex-org/podcast-namespace/pull/331\" target=\"_blank\" rel=\"noopener noreferrer\">On February 3, 2022</a>, the recognized alternative for SubRip files in the podcast namespace specification became \"<code>application/x-subrip</code>\". However, keep in mind that although podcast players like Podverse and Podcast Addict have updated their codebases, some other apps may still only recognize \"<code>application/srt</code>\" at this time."
                         .to_string(),
                 ));
             }
