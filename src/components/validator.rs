@@ -115,101 +115,101 @@ pub fn Validator<G: Html>(cx: Scope) -> View<G> {
     }
 
     view! { cx,
-        crate::components::ToolsBreadcrumbs(title="Podcast Validator")
+            crate::components::ToolsBreadcrumbs(title="Podcast Validator")
 
-        h1(class="mb-3") { "Podcast Validator" }
-        h2(class="mt-3 text-gray-500") { "Make sure your Podcasting 2.0 feed is valid." }
-        p(class="mt-7") {
-            utils::Link(url="https://podcastindex.org/namespace/1.0".to_string(), text="Podcast namespace initiative".to_string(), new_tab=true)
-            " is a community effort to create modern podcasting standards. If you utilize any of the new "
-            code { "<podcast:*>" }
-        " XML tags, this tool will check for any mistakes in your feed."
+            h1(class="mb-3") { "Podcast Validator" }
+            h2(class="mt-3 text-gray-500") { "Make sure your Podcasting 2.0 feed is valid." }
+            p(class="mt-7") {
+                utils::Link(url="https://podcastindex.org/namespace/1.0".to_string(), text="Podcast namespace initiative".to_string(), new_tab=true)
+                " is a community effort to create modern podcasting standards. If you utilize any of the new "
+                code { "<podcast:*>" }
+            " XML tags, this tool will check for any mistakes in your feed."
+        }
+
+        p(class="mb-7") {
+            "This validator only checks the " em { "podcast namespace" } " elements and only analyzes the " em { "feed" } " itself. For other namespaces and media checks, you can try "
+        utils::Link(url="https://validator.livewire.io/".to_string(), text="Livewire Podcast Validator".to_string(), new_tab=true)
+        ", "
+        utils::Link(url="https://www.castfeedvalidator.com/".to_string(), text="Cast Feed Validator".to_string(), new_tab=true)
+        ", and "
+        utils::Link(url="https://podba.se/validate/".to_string(), text="Podbase Podcast Validator".to_string(), new_tab=true)
+        "."
     }
 
-    p(class="mb-7") {
-        "This validator only checks the " em { "podcast namespace" } " elements and only analyzes the " em { "feed" } " itself. For other namespaces and media checks, you can try "
-    utils::Link(url="https://validator.livewire.io/".to_string(), text="Livewire Podcast Validator".to_string(), new_tab=true)
-    ", "
-    utils::Link(url="https://www.castfeedvalidator.com/".to_string(), text="Cast Feed Validator".to_string(), new_tab=true)
-    ", and "
-    utils::Link(url="https://podba.se/validate/".to_string(), text="Podbase Podcast Validator".to_string(), new_tab=true)
-    "."
-}
-
-    form(class="mb-4 space-y-3") {
-        // Prevent submission with "Enter".
-        button(
-            type="submit",
-            disabled=true,
-            style="display: none",
-            aria-hidden="true"
-        ){}
-    div{
-        label(for="url") { "Feed's URL" }
-    div(class="grid grid-cols-4") {
-        div(class="flex flex-row col-span-4 md:col-span-3") {
-            input(
-                class=format!("input-text-base rounded-t-xl md:rounded-l-xl md:rounded-r-none text-ellipsis z-10 {}", input_cls.get()),
-                spellcheck=false,
-                autofocus=true,
-                type="url",
-                id="url",
-                placeholder="https://example.com/feed.xml",
-                autocomplete="off",
+        form(class="mb-4 space-y-3") {
+            // Prevent submission with "Enter".
+            button(
+                type="submit",
+                disabled=true,
+                style="display: none",
+                aria-hidden="true"
+            ){}
+        div{
+            label(for="url") { "Feed's URL" }
+        div(class="grid grid-cols-4") {
+            div(class="flex flex-row col-span-4 md:col-span-3") {
+                input(
+                    class=format!("input-text-base rounded-t-xl md:rounded-l-xl md:rounded-r-none text-ellipsis z-10 {}", input_cls.get()),
+                    spellcheck=false,
+                    autofocus=true,
+                    type="url",
+                    id="url",
+                    placeholder="https://example.com/feed.xml",
+                    autocomplete="off",
+                    disabled=*fetching_data.get(),
+                    bind:value=url_str,
+                )
+            }
+            button(
+                class=format!("btn-base btn-primary rounded-b-xl md:rounded-r-xl md:rounded-l-none col-span-4 md:col-span-1"),
+                type="button",
+                on:click=move |_| fetch_feed(true),
                 disabled=*fetching_data.get(),
-                bind:value=url_str,
-            )
-        }
-        button(
-            class=format!("btn-base btn-primary rounded-b-xl md:rounded-r-xl md:rounded-l-none col-span-4 md:col-span-1"),
-            type="button",
-            on:click=move |_| fetch_feed(true),
-            disabled=*fetching_data.get(),
-        ) {
-            (if *fetching_data.get() {
-                "Loading..."
-            } else {
-                "Test feed"
-            })
-        }
-    }
-
-}
-
-    div(class="flex flex-row items-center") {
-    div(class="cursor-pointer") {
-    input(
-        id="use-proxy",
-        type="checkbox",
-        class="input-checkbox",
-        bind:checked=use_proxy,
-    )
-        label(class="ml-3 cursor-pointer", for="use-proxy") {
-        "Route requests through RSS Blue"
-    }
-}
-}
-}
-
-    (if *show_results.get() {
-        view!{cx,
-            Suspense(fallback=view! { cx, }) {
-                Validate(url=url_str.get().to_string(), use_proxy=*use_proxy.get())
+            ) {
+                (if *fetching_data.get() {
+                    "Loading..."
+                } else {
+                    "Test feed"
+                })
             }
         }
-    } else {
-            view! { cx,
-            }
-        })
 
-        (if program_error.get().is_some() {
-            let error = &*program_error.get();
-            view! { cx, DisplayProgramError(program_error=error.clone().unwrap()) }
+    }
+
+        div(class="flex flex-row items-center") {
+        div(class="cursor-pointer") {
+        input(
+            id="use-proxy",
+            type="checkbox",
+            class="input-checkbox",
+            bind:checked=use_proxy,
+        )
+            label(class="ml-3 cursor-pointer", for="use-proxy") {
+            "Route requests through RSS Blue"
+        }
+    }
+    }
+    }
+
+        (if *show_results.get() {
+            view!{cx,
+                Suspense(fallback=view! { cx, }) {
+                    Validate(url=url_str.get().to_string(), use_proxy=*use_proxy.get())
+                }
+            }
         } else {
-                view! { cx, }
+                view! { cx,
+                }
             })
 
-}
+            (if program_error.get().is_some() {
+                let error = &*program_error.get();
+                view! { cx, DisplayProgramError(program_error=error.clone().unwrap()) }
+            } else {
+                    view! { cx, }
+                })
+
+    }
 }
 
 #[component(inline_props)]
@@ -262,21 +262,21 @@ pub async fn Validate<'a, G: Html>(cx: Scope<'a>, url: String, use_proxy: bool) 
             let mut description = view! { cx, "Could not fetch the feed." };
             if e.is_request() && !use_proxy {
                 description = view! { cx,
-                    "Could not make the request. This could be due to a "
-                    utils::Link(url="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS".to_string(), text="CORS".to_string(), new_tab=true)
-                    " error, so you can try routing requests through RSS Blue by clicking on the checkbox above."
+                        "Could not make the request. This could be due to a "
+                        utils::Link(url="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS".to_string(), text="CORS".to_string(), new_tab=true)
+                        " error, so you can try routing requests through RSS Blue by clicking on the checkbox above."
 
-                    details(class="mt-2") {
-                        summary(class="font-bold") { "CORS for feed hosts" }
-                        "If you control the server hosting the feed, you can add the following header to the HTTP response to allow CORS requests from any origin:"
-                            pre(class="p-1") {
-                            "Access-Control-Allow-Origin: *"
-                        }
-                        "Security-wise, this may not be optimal in every scenario, so we recommend "
-                        utils::Link(url="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS".to_string(), text="reading more about CORS".to_string(), new_tab=true)
-                        " to understand what is the best solution for " em { "you" } "."
-                }
-            };
+                        details(class="mt-2") {
+                            summary(class="font-bold") { "CORS for feed hosts" }
+                            "If you control the server hosting the feed, you can add the following header to the HTTP response to allow CORS requests from any origin:"
+                                pre(class="p-1") {
+                                "Access-Control-Allow-Origin: *"
+                            }
+                            "Security-wise, this may not be optimal in every scenario, so we recommend "
+                            utils::Link(url="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS".to_string(), text="reading more about CORS".to_string(), new_tab=true)
+                            " to understand what is the best solution for " em { "you" } "."
+                    }
+                };
             }
             let program_error = ProgramError {
                 description,
@@ -373,94 +373,94 @@ fn DisplayError<'a, G: Html>(cx: Scope<'a>, error: Error) -> View<G> {
         Error::InvalidAttribute(attr, value) => {
             if attr == NODE_VALUE {
                 view! { cx,
-                    div(class="text-danger-500") {
-                        "Invalid node value "
-                        code { "“" (value) "”" }
+                        div(class="text-danger-500") {
+                            "Invalid node value "
+                            code { "“" (value) "”" }
+                    }
                 }
-            }
             } else {
                 view! { cx,
-                    div(class="text-danger-500") {
-                        "Attribute "
-                            code(class="attr") { (attr) }
-                        " has invalid value "
-                        code { "“" (value) "”" }
+                        div(class="text-danger-500") {
+                            "Attribute "
+                                code(class="attr") { (attr) }
+                            " has invalid value "
+                            code { "“" (value) "”" }
+                    }
                 }
-            }
             }
         }
         Error::InvalidAttributeWithReason(attr, value, reason) => {
             if attr == NODE_VALUE {
                 view! { cx,
-                    span(class="text-danger-500") {
-                        "Invalid node value "
-                        code { "“" (value) "”" }
+                        span(class="text-danger-500") {
+                            "Invalid node value "
+                            code { "“" (value) "”" }
+                    }
+                    span(class="text-gray-500") {
+                        ": "
+                        span(
+                            class="from-md",
+                            dangerously_set_inner_html=&md_to_html(&reason),
+                        ){}
+                    }
                 }
-                span(class="text-gray-500") {
-                    ": "
-                    span(
-                        class="from-md",
-                        dangerously_set_inner_html=&md_to_html(&reason),
-                    ){}
-                }
-            }
             } else {
                 view! { cx,
-                    span(class="text-danger-500") {
-                        "Attribute "
-                            code(class="attr") { (attr) }
-                        " has invalid value "
-                        code { "“" (value) "”" }
-                }
-                span(class="text-gray-500") {
-                    ": "
-                    span(
-                        class="from-md",
-                        dangerously_set_inner_html=&md_to_html(&reason),
-                    ){}
+                        span(class="text-danger-500") {
+                            "Attribute "
+                                code(class="attr") { (attr) }
+                            " has invalid value "
+                            code { "“" (value) "”" }
+                    }
+                    span(class="text-gray-500") {
+                        ": "
+                        span(
+                            class="from-md",
+                            dangerously_set_inner_html=&md_to_html(&reason),
+                        ){}
 
+                    }
                 }
-            }
             }
         }
         Error::MissingChild(tag_name) => {
             view! { cx,
-                div(class="text-danger-500") {
-                    "Missing child "
-                    code { "<" (tag_name) ">" }
+                    div(class="text-danger-500") {
+                        "Missing child "
+                        code { "<" (tag_name) ">" }
+                }
             }
-        }
         }
         Error::MultipleChildren(tag_name) => {
             view! { cx,
-                div(class="text-danger-500") {
-                    "Only one child "
-                    code { "<" (tag_name) ">" }
-                " is allowed"
+                    div(class="text-danger-500") {
+                        "Only one child "
+                        code { "<" (tag_name) ">" }
+                    " is allowed"
+                }
             }
-        }
         }
         Error::AttributeExceedsMaxLength(attr, value, max_len) => {
             if attr == NODE_VALUE {
                 view! { cx,
-                    div(class="text-danger-500") {
-                        "Node value "
-                        code { "“" (value) "”" }
-                    " exceeds maximum length of "
-                    code { (max_len) }
-                " characters"
-            }
-            }
-            } else {
-                view! { cx,
-                    div(class="text-danger-500") {
-                        "Attribute "
-                            code(class="attr") { (attr) }
+                        div(class="text-danger-500") {
+                            "Node value "
+                            code { "“" (value) "”" }
                         " exceeds maximum length of "
                         code { (max_len) }
                     " characters"
                 }
-            }
+                }
+            } else {
+                view! { cx,
+                        div(class="text-danger-500") {
+                            "Attribute "
+                                code(class="attr") { (attr) }
+                            " exceeds maximum length of "
+                            code { (max_len) }
+                        " characters"
+                    }
+                }
             }
         }
         Error::Custom(msg) => {
@@ -558,72 +558,72 @@ fn DisplayNode<'a, G: Html>(cx: Scope<'a>, node: Node, is_root: bool) -> View<G>
     let details_cls = if is_root { "overflow-x-auto" } else { "" };
 
     view! { cx,
-        (match (is_root, have_podcast_tags, have_nested_errors) {
-            (true, false, _) => view! { cx,
-                div(class="mb-5") {
-                    utils::Alert(type_=utils::AlertType::Info, msg="No podcast namespace tags found.".to_string())
-                }
-            },
-            (true, true, false) => view! { cx,
-                div(class="mb-5") {
-                    utils::Alert(type_=utils::AlertType::Success, msg="Our analysis has not found any errors in the podcast namespace tags.".to_string())
-                }
-            },
-            _ => view! { cx, },
-        })
+            (match (is_root, have_podcast_tags, have_nested_errors) {
+                (true, false, _) => view! { cx,
+                    div(class="mb-5") {
+                        utils::Alert(type_=utils::AlertType::Info, msg="No podcast namespace tags found.".to_string())
+                    }
+                },
+                (true, true, false) => view! { cx,
+                    div(class="mb-5") {
+                        utils::Alert(type_=utils::AlertType::Success, msg="Our analysis has not found any errors in the podcast namespace tags.".to_string())
+                    }
+                },
+                _ => view! { cx, },
+            })
 
-        details(class=details_cls, open=have_nested_errors) {
-        summary(class=name_cls) {
-            code(class="font-bold") { "<"(node.name)">" }
-}
-div(class="pl-1") {
-                div(class="pl-2 md:pl-4 border-l-2 border-gray-200") {
-                    ul(class="text-sm my-0") {
-                        Indexed(
-                            iterable=errors,
-                            view=|cx, x| view! { cx,
-                                li(class="my-0 marker:text-danger-500") { DisplayError(error=x) }
-                            },
-                        )
+            details(class=details_cls, open=have_nested_errors) {
+            summary(class=name_cls) {
+                code(class="font-bold") { "<"(node.name)">" }
+    }
+    div(class="pl-1") {
+                    div(class="pl-2 md:pl-4 border-l-2 border-gray-200") {
+                        ul(class="text-sm my-0") {
                             Indexed(
-                                iterable=attributes,
+                                iterable=errors,
                                 view=|cx, x| view! { cx,
-                                    li(class="my-0") {
-                                        code { span(class="attr") { (x.0) }  "=" }
-                                        (match &x.1 {
-                                            Value::Text(s) => {
-                                                let s = s.to_string();
-                                                view! { cx, "“" (s) "”" }
-                                            },
-                                            Value::Object(s) => {
-                                                let s = s.to_string();
-                                                view! { cx, span(class="italic") { (s) } }
-                                            },
-                                            Value::Url(s) => {
-                                                let s = s.to_string();
-                                                if s.starts_with("http") {
-                                                    view! { cx, utils::Link(url=s.to_string(), text=s.to_string(), new_tab=true) }
-                                                } else {
-                                                    view! { cx, span(class="italic") { (s) } }
-                                                }
-                                            }
-                                        }
-                                        )
-                                    }
+                                    li(class="my-0 marker:text-danger-500") { DisplayError(error=x) }
                                 },
                             )
-                    }
+                                Indexed(
+                                    iterable=attributes,
+                                    view=|cx, x| view! { cx,
+                                        li(class="my-0") {
+                                            code { span(class="attr") { (x.0) }  "=" }
+                                            (match &x.1 {
+                                                Value::Text(s) => {
+                                                    let s = s.to_string();
+                                                    view! { cx, "“" (s) "”" }
+                                                },
+                                                Value::Object(s) => {
+                                                    let s = s.to_string();
+                                                    view! { cx, span(class="italic") { (s) } }
+                                                },
+                                                Value::Url(s) => {
+                                                    let s = s.to_string();
+                                                    if s.starts_with("http") {
+                                                        view! { cx, utils::Link(url=s.to_string(), text=s.to_string(), new_tab=true) }
+                                                    } else {
+                                                        view! { cx, span(class="italic") { (s) } }
+                                                    }
+                                                }
+                                            }
+                                            )
+                                        }
+                                    },
+                                )
+                        }
 
-                    Indexed(
-                        iterable=children,
-                        view=|cx, x| view! { cx,
-                            DisplayNode(node=x, is_root=false)
-                        },
-                    )
+                        Indexed(
+                            iterable=children,
+                            view=|cx, x| view! { cx,
+                                DisplayNode(node=x, is_root=false)
+                            },
+                        )
+                    }
                 }
             }
         }
-    }
 }
 
 fn analyze_rss(rss: &badpod::Rss) -> Node {
@@ -1214,16 +1214,16 @@ fn analyze_podcast_location(location: &badpod::podcast::Location) -> Node {
                 altitude,
                 uncertainty,
             } => {
-                    let mut geo_str = format!("{{ latitude: {}, longitude: {}", latitude, longitude);
-                    if let Some(altitude) = altitude {
-                        geo_str.push_str(format!(", altitude: {}", altitude).as_str());
-                    }
-                    if let Some(uncertainty) = uncertainty {
-                        geo_str.push_str(format!(", uncertainty: {}", uncertainty).as_str());
-                    }
-                    geo_str.push_str(" }");
-                    attributes.push(("geo".to_string(), Value::Object(geo_str)));
+                let mut geo_str = format!("{{ latitude: {}, longitude: {}", latitude, longitude);
+                if let Some(altitude) = altitude {
+                    geo_str.push_str(format!(", altitude: {}", altitude).as_str());
                 }
+                if let Some(uncertainty) = uncertainty {
+                    geo_str.push_str(format!(", uncertainty: {}", uncertainty).as_str());
+                }
+                geo_str.push_str(" }");
+                attributes.push(("geo".to_string(), Value::Object(geo_str)));
+            }
             badpod::podcast::Geo::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
                     "geo".to_string(),
@@ -1241,13 +1241,13 @@ fn analyze_podcast_location(location: &badpod::podcast::Location) -> Node {
                 id,
                 revision,
             } => {
-                    let mut osm_str = format!("{{ type: {:?}, id: {}", type_, id);
-                    if let Some(revision) = revision {
-                        osm_str.push_str(format!(", revision: {}", revision).as_str());
-                    }
-                    osm_str.push_str(" }");
-                    attributes.push(("osm".to_string(), Value::Object(osm_str)));
+                let mut osm_str = format!("{{ type: {:?}, id: {}", type_, id);
+                if let Some(revision) = revision {
+                    osm_str.push_str(format!(", revision: {}", revision).as_str());
                 }
+                osm_str.push_str(" }");
+                attributes.push(("osm".to_string(), Value::Object(osm_str)));
+            }
             badpod::podcast::Osm::Other((s, reason)) => {
                 errors.push(Error::InvalidAttributeWithReason(
                     "osm".to_string(),
